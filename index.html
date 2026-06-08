@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>安徽高考志愿填报模拟系统</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">安徽 2026 普通高招</p>
+          <h1>志愿填报模拟系统</h1>
+        </div>
+        <div class="topbar-actions">
+          <button class="icon-button" id="printDraftBtn" title="打印志愿草表" aria-label="打印志愿草表">⎙</button>
+          <button class="icon-button" id="exportDraftBtn" title="导出草表 JSON" aria-label="导出草表 JSON">⇩</button>
+          <button class="text-button primary" id="simulateTopBtn">模拟投档</button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="sidebar">
+          <section class="panel candidate-panel">
+            <div class="panel-title-row">
+              <h2>考生画像</h2>
+              <span class="status-pill" id="profileStatus">未完整</span>
+            </div>
+            <form id="candidateForm" class="form-grid">
+              <label>
+                批次
+                <select id="batchInput">
+                  <option value="regular-bachelor">普通本科批</option>
+                  <option value="regular-junior">普通高职（专科）批</option>
+                  <option value="early-parallel">提前批平行类别</option>
+                  <option value="special-plan">国家/地方/高校专项计划</option>
+                  <option value="art-unified">艺术类统考批</option>
+                  <option value="sports">体育类批</option>
+                </select>
+              </label>
+              <label>
+                首选科目
+                <select id="firstChoiceInput">
+                  <option value="物理">物理</option>
+                  <option value="历史">历史</option>
+                </select>
+              </label>
+              <fieldset class="checks">
+                <legend>再选科目</legend>
+                <label><input type="checkbox" name="secondChoice" value="思想政治" /> 思想政治</label>
+                <label><input type="checkbox" name="secondChoice" value="地理" /> 地理</label>
+                <label><input type="checkbox" name="secondChoice" value="化学" checked /> 化学</label>
+                <label><input type="checkbox" name="secondChoice" value="生物学" checked /> 生物学</label>
+              </fieldset>
+              <label>
+                高考总分
+                <input id="scoreInput" type="number" min="0" max="750" value="585" />
+              </label>
+              <div class="score-band-card">
+                <span>建议填报分数带</span>
+                <strong id="scoreBandText">500 - 699</strong>
+                <small>院校库按考分所在大段展示；冲稳保按院校参考分数带再分层</small>
+              </div>
+              <label>
+                全省位次
+                <input id="rankInput" type="number" min="1" value="28500" />
+              </label>
+              <label>
+                单科：语文
+                <input id="chineseInput" type="number" min="0" max="150" value="108" />
+              </label>
+              <label>
+                单科：数学
+                <input id="mathInput" type="number" min="0" max="150" value="119" />
+              </label>
+              <label>
+                单科：外语
+                <input id="foreignInput" type="number" min="0" max="150" value="122" />
+              </label>
+              <label>
+                城市偏好
+                <select id="cityPreferenceInput">
+                  <option value="不限">不限</option>
+                  <option value="合肥">合肥</option>
+                  <option value="芜湖">芜湖</option>
+                  <option value="南京">南京</option>
+                  <option value="上海">上海</option>
+                  <option value="杭州">杭州</option>
+                </select>
+              </label>
+              <label>
+                专业关键词
+                <input id="majorKeywordInput" type="search" placeholder="如 计算机、医学、师范" />
+              </label>
+            </form>
+          </section>
+
+          <section class="panel policy-panel">
+            <div class="panel-title-row">
+              <h2>政策规则</h2>
+              <span class="status-pill valid">2026</span>
+            </div>
+            <dl class="policy-list" id="policyList"></dl>
+            <p class="source-note">
+              数据口径：安徽省 2026 年普通高校招生工作实施办法。正式填报以安徽省教育招生考试院系统、招生计划和高校招生章程为准。
+            </p>
+            <div class="source-links">
+              <a href="https://app.gaokaozhitongche.com/news/h/yw6J91jw" target="_blank" rel="noreferrer">2026 招生办法</a>
+              <a href="https://www.moe.gov.cn/jyb_xxgk/s5743/s5744/202506/t20250627_1195683.html" target="_blank" rel="noreferrer">教育部高校名单</a>
+              <a href="https://gaokao.chsi.com.cn/" target="_blank" rel="noreferrer">阳光高考</a>
+            </div>
+          </section>
+        </aside>
+
+        <section class="content">
+          <nav class="tabs query-tabs" aria-label="主功能">
+            <div class="tab-group">
+              <span class="tab-group-label">信息查询</span>
+              <button class="tab active" data-tab="schools">院校库</button>
+              <button class="tab" data-tab="national">全国院校</button>
+              <button class="tab" data-tab="majors">专业库</button>
+              <button class="tab" data-tab="careers">职业库</button>
+              <button class="tab" data-tab="early">提前批</button>
+              <button class="tab" data-tab="rank">位次查询</button>
+              <button class="tab" data-tab="history">分数线</button>
+              <button class="tab" data-tab="batchline">批次线</button>
+              <button class="tab" data-tab="guide">省份指南</button>
+            </div>
+            <div class="tab-group fill-group">
+              <span class="tab-group-label">填志愿</span>
+              <button class="tab" data-tab="draft">志愿填报</button>
+              <button class="tab" data-tab="simulation">模拟投档</button>
+            </div>
+            <div class="tab-group utility-group">
+              <button class="tab" data-tab="knowledge">咨询知识库</button>
+              <button class="tab" data-tab="data">数据维护</button>
+            </div>
+          </nav>
+
+          <section class="tab-panel active" id="schoolsPanel">
+            <div class="toolbar">
+              <div class="search-box">
+                <input id="schoolSearchInput" type="search" placeholder="搜索院校、城市、专业组、专业" />
+              </div>
+              <select id="riskFilterInput" aria-label="风险筛选">
+                <option value="all">全部风险</option>
+                <option value="sprint">冲</option>
+                <option value="steady">稳</option>
+                <option value="safe">保</option>
+                <option value="high">高风险</option>
+              </select>
+              <select id="matchFilterInput" aria-label="科目筛选">
+                <option value="eligible">仅看可报</option>
+                <option value="all">全部专业组</option>
+              </select>
+            </div>
+            <div class="insight-strip" id="insightStrip"></div>
+            <div class="profile-panel" id="schoolProfilePanel"></div>
+            <div class="table-wrap">
+              <table class="data-table" id="schoolTable">
+                <thead>
+                  <tr>
+                    <th>院校专业组</th>
+                    <th>院校信息</th>
+                    <th>选科</th>
+                    <th>专业</th>
+                    <th>位次参考</th>
+                    <th>风险</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="nationalPanel">
+            <div class="section-head">
+              <div>
+                <h2>全国本科 / 专科院校库</h2>
+                <p id="nationalMeta">加载中</p>
+              </div>
+              <button class="text-button" id="exportNationalBtn">导出全国院校</button>
+            </div>
+            <div class="toolbar">
+              <div class="search-box">
+                <input id="nationalSearchInput" type="search" placeholder="搜索学校、城市、主管部门、标识码" />
+              </div>
+              <select id="nationalProvinceInput" aria-label="省份筛选"></select>
+              <select id="nationalLevelInput" aria-label="层次筛选">
+                <option value="all">全部层次</option>
+                <option value="本科">本科</option>
+                <option value="专科">专科</option>
+              </select>
+              <select id="nationalNatureInput" aria-label="办学性质筛选">
+                <option value="all">全部性质</option>
+                <option value="public">公办/主管部门直属</option>
+                <option value="private">民办/独立</option>
+              </select>
+            </div>
+            <div class="insight-strip" id="nationalStats"></div>
+            <div class="profile-panel" id="nationalProfilePanel"></div>
+            <div class="table-wrap">
+              <table class="data-table" id="nationalCollegeTable">
+                <thead>
+                  <tr>
+                    <th>院校</th>
+                    <th>省份 / 城市</th>
+                    <th>层次</th>
+                    <th>标签</th>
+                    <th>主管部门</th>
+                    <th>性质</th>
+                    <th>标识码</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="majorsPanel">
+            <div class="section-head">
+              <div>
+                <h2>专业库</h2>
+                <p>专业课程、相近专业、毕业去向、优势高校和填报提醒</p>
+              </div>
+            </div>
+            <div class="toolbar">
+              <div class="search-box">
+                <input id="majorSearchInput" type="search" placeholder="搜索专业、课程、就业方向、优势高校" />
+              </div>
+              <select id="majorCategoryInput" aria-label="专业类别筛选">
+                <option value="all">全部类别</option>
+              </select>
+              <button class="text-button" id="majorExpandBtn">全部展开</button>
+              <button class="text-button" id="majorCollapseBtn">全部折叠</button>
+            </div>
+            <div class="insight-strip" id="majorStats"></div>
+            <div class="major-grid" id="majorGrid"></div>
+          </section>
+
+          <section class="tab-panel" id="careersPanel">
+            <div class="section-head">
+              <div>
+                <h2>职业库</h2>
+                <p>依据《中华人民共和国职业分类大典（2022年版）》按职业大类、中类展开，帮助学生把专业选择和就业路径连起来</p>
+              </div>
+            </div>
+            <div class="toolbar">
+              <div class="search-box">
+                <input id="careerSearchInput" type="search" placeholder="搜索职业大类、中类、样例职业、关联专业" />
+              </div>
+              <select id="careerCategoryInput" aria-label="职业大类筛选">
+                <option value="all">全部职业大类</option>
+              </select>
+            </div>
+            <div class="insight-strip" id="careerStats"></div>
+            <div class="career-tree" id="careerGrid"></div>
+          </section>
+
+          <section class="tab-panel" id="earlyPanel">
+            <div class="section-head">
+              <div>
+                <h2>提前批</h2>
+                <p>提前批不是“低分捡漏”，重点看体检、政审、面试、协议、服务年限和退档影响</p>
+              </div>
+            </div>
+            <div class="query-card-grid">
+              <article class="query-card"><h3>军队院校</h3><p>通常需要政治考核、面试、体检，选科和身体条件限制严格，录取后培养和就业路径具有特殊性。</p></article>
+              <article class="query-card"><h3>公安 / 司法</h3><p>关注体检、体测、政审、面试和年龄条件；公安院校公安专业与普通专业就业路径不同。</p></article>
+              <article class="query-card"><h3>公费师范 / 优师专项</h3><p>重点核对签约主体、服务地区、服务年限、违约责任和是否可跨专业调剂。</p></article>
+              <article class="query-card"><h3>医学定向</h3><p>关注定向县区、规培安排、服务期限、编制政策和违约责任，适合明确基层医疗方向的考生。</p></article>
+              <article class="query-card"><h3>航海 / 飞行 / 小语种等</h3><p>通常有身体条件、外语口试或单独面试要求，填报前必须核对招生章程。</p></article>
+              <article class="query-card"><h3>安徽填报提醒</h3><p>平行类通常为 20 个院校专业组志愿；非平行或特殊类别以安徽省教育招生考试院当年文件为准。</p></article>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="rankPanel">
+            <div class="section-head">
+              <div>
+                <h2>位次查询</h2>
+                <p>用分数只看大致区间，用位次判断冲稳保更稳定；正式填报以安徽一分一段表和投档线为准</p>
+              </div>
+            </div>
+            <div class="query-card-grid">
+              <article class="query-card wide"><h3>当前考生画像</h3><p>左侧录入高考总分和全省位次后，院校库会按当前分数所在大段生成候选院校，并按冲、稳、保标注风险。</p><p>建议：冲可上探 20-40 分，稳围绕当前分数，保向下探 20-40 分；最终仍以位次、选科、专业组和招生计划核对。</p></article>
+              <article class="query-card"><h3>按位次找学校</h3><p>在“分数线”栏目输入学校或专业组，查看已导入的往年最低位次；缺少真实数据时可在“数据维护”导入官方表。</p></article>
+              <article class="query-card"><h3>同分排序</h3><p>安徽普通类同分时依次参考语文数学两科之和、语文或数学最高分、外语、首选科目、再选科目最高分等。</p></article>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="batchlinePanel">
+            <div class="section-head">
+              <div>
+                <h2>批次线</h2>
+                <p>批次线、特殊类型线、艺术体育线每年变化，当前栏目保留 2026 查询入口和导入说明</p>
+              </div>
+            </div>
+            <div class="query-card-grid">
+              <article class="query-card"><h3>普通本科批</h3><p>安徽 2026 普通类实行“3+1+2”，本科普通批、专科普通批均以院校专业组作为志愿单位。</p></article>
+              <article class="query-card"><h3>特殊类型参考线</h3><p>强基、高校专项、高水平运动队等类型需结合特殊类型控制线和高校简章单独判断。</p></article>
+              <article class="query-card"><h3>艺术 / 体育</h3><p>艺术、体育类通常涉及文化课、专业统考成绩和综合分，批次线不能直接套用普通类。</p></article>
+              <article class="query-card"><h3>数据导入</h3><p>真实批次线发布后，可在“数据维护”导入安徽省教育招生考试院公布的官方分数线表。</p></article>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="historyPanel">
+            <div class="section-head">
+              <div>
+                <h2>历年录取信息</h2>
+                <p>当前展示演示/导入的专业组最低位次和专业位次；真实使用需导入官方投档线、专业分和招生计划</p>
+              </div>
+            </div>
+            <div class="toolbar">
+              <div class="search-box">
+                <input id="historySearchInput" type="search" placeholder="搜索学校、专业组、专业、城市" />
+              </div>
+              <select id="historyYearInput" aria-label="年份筛选">
+                <option value="all">全部年份</option>
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+              </select>
+              <select id="historyLevelInput" aria-label="层次筛选">
+                <option value="all">全部层次</option>
+                <option value="本科">本科</option>
+                <option value="高职（专科）">高职（专科）</option>
+              </select>
+            </div>
+            <div class="insight-strip" id="historyStats"></div>
+            <div class="table-wrap">
+              <table class="data-table" id="historyTable">
+                <thead>
+                  <tr>
+                    <th>年份</th>
+                    <th>院校专业组</th>
+                    <th>层次 / 城市</th>
+                    <th>专业</th>
+                    <th>最低位次</th>
+                    <th>来源</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="guidePanel">
+            <div class="section-head">
+              <div>
+                <h2>各省填报指南导航</h2>
+                <p>按省级考试院官网核对当年招生计划、投档线、志愿填报时间和征集志愿公告</p>
+              </div>
+            </div>
+            <div class="guide-toolbar">
+              <button class="seg active" data-guide-filter="all">全部</button>
+              <button class="seg" data-guide-filter="3+1+2">3+1+2</button>
+              <button class="seg" data-guide-filter="3+3">3+3</button>
+              <button class="seg" data-guide-filter="traditional">传统文理</button>
+            </div>
+            <div class="guide-grid" id="provinceGuideGrid"></div>
+          </section>
+
+          <section class="tab-panel" id="draftPanel">
+            <div class="section-head">
+              <div>
+                <h2>志愿填报表</h2>
+                <p><span id="draftCounter">0 / 45 个院校专业组</span> · 按加入顺序生成，可用上移/下移调整顺序</p>
+              </div>
+              <div class="toolbar compact">
+                <button class="text-button" id="autoSortBtn">按风险排序</button>
+                <button class="text-button danger" id="clearDraftBtn">清空</button>
+              </div>
+            </div>
+            <div class="mix-meter" id="mixMeter"></div>
+            <div id="draftList" class="draft-list"></div>
+          </section>
+
+          <section class="tab-panel" id="simulationPanel">
+            <div class="section-head">
+              <div>
+                <h2>模拟结果</h2>
+                <p>按平行志愿“分数优先、遵循志愿”的简化逻辑检索草表</p>
+              </div>
+              <button class="text-button primary" id="simulateBtn">重新模拟</button>
+            </div>
+            <div id="simulationResult" class="simulation-result empty-state">
+              还没有模拟结果。
+            </div>
+            <div class="panel compact-panel">
+              <h3>校验清单</h3>
+              <ul id="validationList" class="validation-list"></ul>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="knowledgePanel">
+            <div class="section-head">
+              <div>
+                <h2>咨询知识库</h2>
+                <p>来自本地会议纪要、资料夹结构和通用志愿填报流程的可操作要点</p>
+              </div>
+            </div>
+            <div class="knowledge-grid" id="knowledgeGrid"></div>
+          </section>
+
+          <section class="tab-panel" id="dataPanel">
+            <div class="section-head">
+              <div>
+                <h2>数据维护</h2>
+                <p>内置数据用于演示，可导入官方招生计划整理后的 JSON 或 CSV</p>
+              </div>
+              <button class="text-button" id="resetDataBtn">恢复演示数据</button>
+            </div>
+            <div class="data-grid">
+              <section class="panel">
+                <h3>导入</h3>
+                <textarea id="importText" rows="12" spellcheck="false" placeholder="粘贴 JSON 数组，或 CSV：school,groupCode,batch,city,firstChoice,subjects,plan,lastRank,rank2026,rank2025,rank2024,programs"></textarea>
+                <div class="toolbar compact">
+                  <button class="text-button primary" id="importJsonBtn">导入数据</button>
+                  <button class="text-button" id="loadSampleCsvBtn">填入 CSV 样例</button>
+                </div>
+                <p class="source-note">导入后会写入浏览器本地缓存，不上传服务器。</p>
+              </section>
+              <section class="panel">
+                <h3>字段格式</h3>
+                <div class="schema-list">
+                  <p><strong>school</strong>：院校名称</p>
+                  <p><strong>groupCode</strong>：院校专业组代码</p>
+                  <p><strong>batch</strong>：regular-bachelor / regular-junior / early-parallel / special-plan / art-unified / sports</p>
+                  <p><strong>firstChoice</strong>：物理 / 历史 / 不限</p>
+                  <p><strong>subjects</strong>：再选要求，用 | 分隔；不限可为空</p>
+                  <p><strong>programs</strong>：专业名用 | 分隔，最多展示 6 个</p>
+                  <p><strong>scoreRange</strong>：参考分数带，如 540-620；没有时系统用位次粗略估算</p>
+                  <p><strong>rank2026 / rank2025 / rank2024</strong>：对应年份专业组位次；2026 未发布时可留空，系统会先预测</p>
+                </div>
+                <button class="text-button" id="exportDataBtn">导出当前院校库</button>
+              </section>
+              <section class="panel data-source-panel">
+                <h3>本地资料解析状态</h3>
+                <p class="source-note" id="localSourceMeta">加载中</p>
+                <div class="source-file-list" id="localSourceList"></div>
+              </section>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <template id="draftItemTemplate">
+      <article class="draft-item">
+        <div class="draft-order-box">
+          <div class="draft-order"></div>
+          <label class="order-jump-label">
+            调至
+            <input class="order-jump-input" type="number" min="1" inputmode="numeric" />
+          </label>
+        </div>
+        <div class="draft-main">
+          <div class="draft-title-row">
+            <div>
+              <h3></h3>
+              <p></p>
+            </div>
+            <span class="risk-chip"></span>
+          </div>
+          <div class="major-picker"></div>
+          <label class="adjust-label"><input type="checkbox" class="adjust-input" checked /> 服从专业调剂</label>
+        </div>
+        <div class="draft-actions">
+          <button class="icon-button move-up" title="上移" aria-label="上移">↑</button>
+          <button class="icon-button move-down" title="下移" aria-label="下移">↓</button>
+          <button class="icon-button remove" title="删除" aria-label="删除">×</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="./national_colleges.js?v=20260606d"></script>
+    <script src="./local_sources.js?v=20260606d"></script>
+    <script src="./major_catalog.js?v=20260606d"></script>
+    <script src="./major_courses.js?v=20260606d"></script>
+    <script src="./career_catalog.js?v=20260607a"></script>
+    <script src="./school_enrichment.js?v=20260606e"></script>
+    <script src="./app.js?v=20260607b"></script>
+  </body>
+</html>
