@@ -14,6 +14,8 @@
           <h1>志愿填报模拟系统</h1>
         </div>
         <div class="topbar-actions">
+          <span class="auth-badge" id="authUserBadge">未登录</span>
+          <button class="text-button ghost" id="logoutBtn" type="button">退出</button>
           <button class="icon-button" id="printDraftBtn" title="打印志愿草表" aria-label="打印志愿草表">⎙</button>
           <button class="icon-button" id="exportDraftBtn" title="导出草表 JSON" aria-label="导出草表 JSON">⇩</button>
           <button class="text-button primary" id="simulateTopBtn">模拟投档</button>
@@ -441,6 +443,25 @@
                 <p class="source-note" id="localSourceMeta">加载中</p>
                 <div class="source-file-list" id="localSourceList"></div>
               </section>
+              <section class="panel account-panel">
+                <h3>账号生成器</h3>
+                <p class="source-note">用于静态站轻量登录：输入手机号生成一次性固定密码和账号配置片段。生成后把片段追加到 access_accounts.js，再上传 GitHub Pages。</p>
+                <div class="account-form">
+                  <label>
+                    用户手机号
+                    <input id="accountPhoneInput" type="tel" inputmode="numeric" placeholder="如 13800000000" />
+                  </label>
+                  <label>
+                    备注姓名
+                    <input id="accountNameInput" type="text" placeholder="如 张同学 / 李女士" />
+                  </label>
+                </div>
+                <div class="toolbar compact">
+                  <button class="text-button primary" id="generateAccountBtn" type="button">生成账号密码</button>
+                  <button class="text-button" id="copyAccountSnippetBtn" type="button">复制配置片段</button>
+                </div>
+                <pre class="account-output" id="accountOutput">尚未生成账号。</pre>
+              </section>
             </div>
           </section>
         </section>
@@ -475,12 +496,15 @@
       </article>
     </template>
 
+    <script src="./access_accounts.js?v=20260622a"></script>
     <script src="./national_colleges.js?v=20260606d"></script>
     <script src="./local_sources.js?v=20260606d"></script>
     <script src="./major_catalog.js?v=20260606d"></script>
     <script src="./major_courses.js?v=20260606d"></script>
     <script src="./career_catalog.js?v=20260607a"></script>
     <script src="./school_enrichment.js?v=20260606e"></script>
-    <script src="./app.js?v=20260607b"></script>
+    <script src="./school_admissions.js?v=20260622a"></script>
+    <script src="./local_college_assets.js?v=20260622a"></script>
+    <script src="./app.js?v=20260622a"></script>
   </body>
 </html>

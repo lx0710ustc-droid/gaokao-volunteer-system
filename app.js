@@ -759,7 +759,8 @@ const DEFAULT_GROUPS = [
 const STORAGE_KEYS = {
   groups: "ah-gaokao-groups-v1",
   draft: "ah-gaokao-draft-v1",
-  profile: "ah-gaokao-profile-v1"
+  profile: "ah-gaokao-profile-v1",
+  auth: "ah-gaokao-auth-v1"
 };
 
 const state = {
@@ -767,16 +768,19 @@ const state = {
   draft: [],
   profile: null,
   activeTab: "schools",
-  majorExpandMode: "default"
+  majorExpandMode: "default",
+  currentUser: null
 };
 
 const els = {};
 
 document.addEventListener("DOMContentLoaded", () => {
   cacheElements();
+  initAuth();
   loadState();
   bindEvents();
   renderAll();
+  updateAuthUi();
 });
 
 function cacheElements() {
@@ -832,7 +836,14 @@ function cacheElements() {
     validationList: document.getElementById("validationList"),
     importText: document.getElementById("importText"),
     localSourceMeta: document.getElementById("localSourceMeta"),
-    localSourceList: document.getElementById("localSourceList")
+    localSourceList: document.getElementById("localSourceList"),
+    authUserBadge: document.getElementById("authUserBadge"),
+    logoutBtn: document.getElementById("logoutBtn"),
+    accountPhone: document.getElementById("accountPhoneInput"),
+    accountName: document.getElementById("accountNameInput"),
+    generateAccount: document.getElementById("generateAccountBtn"),
+    copyAccountSnippet: document.getElementById("copyAccountSnippetBtn"),
+    accountOutput: document.getElementById("accountOutput")
   });
 }
 
@@ -917,6 +928,174 @@ function bindEvents() {
   document.getElementById("importJsonBtn").addEventListener("click", importData);
   document.getElementById("exportDataBtn").addEventListener("click", exportData);
   document.getElementById("exportNationalBtn").addEventListener("click", () => downloadJson("national-colleges-2025.json", getNationalColleges()));
+  els.logoutBtn?.addEventListener("click", logout);
+  els.generateAccount?.addEventListener("click", generateAccountSnippet);
+  els.copyAccountSnippet?.addEventListener("click", copyAccountSnippet);
+}
+
+function initAuth() {
+  const config = getAccessConfig();
+  if (!config.loginRequired) {
+    state.currentUser = { phone: "guest", name: "公开访问", role: "guest" };
+    document.body.classList.add("is-authed");
+    return;
+  }
+  const session = readJson(STORAGE_KEYS.auth, null);
+  const user = session?.phone ? getAccessUsers().find((item) => item.phone === session.phone && item.enabled !== false) : null;
+  if (user && (!session.expiresAt || session.expiresAt > Date.now())) {
+    state.currentUser = { phone: user.phone, name: user.name || maskPhone(user.phone), role: user.role || "student" };
+    document.body.classList.add("is-authed");
+    return;
+  }
+  localStorage.removeItem(STORAGE_KEYS.auth);
+  state.currentUser = null;
+  renderLoginGate();
+}
+
+function getAccessConfig() {
+  return window.ACCESS_ACCOUNTS || { loginRequired: false, users: [] };
+}
+
+function getAccessUsers() {
+  return Array.isArray(getAccessConfig().users) ? getAccessConfig().users : [];
+}
+
+function renderLoginGate(message = "") {
+  document.body.classList.remove("is-authed");
+  let gate = document.getElementById("loginGate");
+  if (!gate) {
+    gate = document.createElement("div");
+    gate.id = "loginGate";
+    gate.className = "login-gate";
+    document.body.append(gate);
+  }
+  gate.innerHTML = `
+    <form class="login-card" id="loginForm">
+      <div>
+        <p class="login-kicker">账号登录</p>
+        <h2>${escapeHtml(getAccessConfig().siteTitle || "高考志愿填报系统")}</h2>
+        <p class="login-desc">请输入管理员发给你的手机号和固定密码。当前版本不提供用户自行改密。</p>
+      </div>
+      <label>
+        手机号
+        <input id="loginPhoneInput" type="tel" inputmode="numeric" autocomplete="username" placeholder="请输入手机号" required />
+      </label>
+      <label>
+        密码
+        <input id="loginPasswordInput" type="password" autocomplete="current-password" placeholder="请输入密码" required />
+      </label>
+      <p class="login-error" id="loginError">${escapeHtml(message)}</p>
+      <button class="text-button primary login-submit" type="submit">登录系统</button>
+      <p class="login-tip">账号由管理员统一生成；如果忘记密码，请联系管理员重新发放。</p>
+    </form>
+  `;
+  gate.querySelector("#loginForm").addEventListener("submit", handleLogin);
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  const phone = document.getElementById("loginPhoneInput").value.replace(/\D/g, "");
+  const password = document.getElementById("loginPasswordInput").value;
+  const user = getAccessUsers().find((item) => item.phone === phone && item.enabled !== false);
+  const error = document.getElementById("loginError");
+  if (!user) {
+    error.textContent = "账号不存在或未启用。";
+    return;
+  }
+  const hash = await sha256Hex(password);
+  if (hash !== user.passwordHash) {
+    error.textContent = "密码不正确。";
+    return;
+  }
+  const sessionDays = Number(getAccessConfig().sessionDays || 7);
+  saveJson(STORAGE_KEYS.auth, {
+    phone: user.phone,
+    expiresAt: Date.now() + sessionDays * 24 * 60 * 60 * 1000
+  });
+  state.currentUser = { phone: user.phone, name: user.name || maskPhone(user.phone), role: user.role || "student" };
+  document.getElementById("loginGate")?.remove();
+  document.body.classList.add("is-authed");
+  updateAuthUi();
+  showMessage(`${state.currentUser.name}，已登录。`);
+}
+
+function logout() {
+  localStorage.removeItem(STORAGE_KEYS.auth);
+  state.currentUser = null;
+  updateAuthUi();
+  renderLoginGate("已退出，请重新登录。");
+}
+
+function updateAuthUi() {
+  if (!els.authUserBadge) return;
+  const user = state.currentUser;
+  els.authUserBadge.textContent = user ? `${user.name || maskPhone(user.phone)} · ${user.role === "admin" ? "管理员" : "已登录"}` : "未登录";
+  if (els.logoutBtn) els.logoutBtn.hidden = !getAccessConfig().loginRequired || !user;
+  document.body.classList.toggle("is-admin", user?.role === "admin");
+}
+
+async function generateAccountSnippet() {
+  if (state.currentUser?.role !== "admin") {
+    showMessage("只有管理员登录后可以生成账号。");
+    return;
+  }
+  const phone = (els.accountPhone?.value || "").replace(/\D/g, "");
+  const name = (els.accountName?.value || "").trim() || "考生用户";
+  if (!/^1\d{10}$/.test(phone)) {
+    showMessage("请输入 11 位手机号。");
+    return;
+  }
+  const password = generateReadablePassword();
+  const passwordHash = await sha256Hex(password);
+  const snippet = `{
+  phone: "${phone}",
+  name: "${escapeJsString(name)}",
+  role: "student",
+  enabled: true,
+  passwordHash: "${passwordHash}",
+  note: "由账号生成器创建"
+}`;
+  els.accountOutput.textContent = `手机号：${phone}
+密码：${password}
+
+把下面这一段追加到 access_accounts.js 的 users 数组里：
+
+${snippet}`;
+}
+
+async function copyAccountSnippet() {
+  const text = els.accountOutput?.textContent || "";
+  if (!text || text.includes("尚未生成")) {
+    showMessage("请先生成账号。");
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    showMessage("账号信息已复制。");
+  } catch {
+    showMessage("浏览器不允许自动复制，请手动选中复制。");
+  }
+}
+
+function generateReadablePassword() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  const suffix = Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
+  return `AH${new Date().getFullYear()}-${suffix.slice(0, 4)}-${suffix.slice(4)}`;
+}
+
+async function sha256Hex(text) {
+  const buffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buffer), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function maskPhone(phone) {
+  return String(phone || "").replace(/^(\d{3})\d{4}(\d{4})$/, "$1****$2");
+}
+
+function escapeJsString(value) {
+  return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
 function loadState() {
@@ -1167,7 +1346,7 @@ function renderSchoolTable() {
     const addLabel = alreadyAdded ? "已加入" : group.isNationalOnly ? "参考加入" : "加入";
     tr.innerHTML = `
       <td>
-        <p class="school-name">${escapeHtml(group.school)} ${escapeHtml(group.groupCode)}组</p>
+        <button class="school-name link-button detail-btn" data-school="${escapeAttr(group.school)}">${escapeHtml(group.school)} ${escapeHtml(group.groupCode)}组</button>
         <p class="school-sub">${escapeHtml(POLICY.batches[group.batch]?.name || group.batch)} · 计划 ${group.plan || "-"} 人</p>
       </td>
       <td>
@@ -1233,13 +1412,15 @@ function maybeShowProfileForSearch(groups) {
 
 function showSchoolProfile(schoolName, scrollIntoView = true) {
   if (!els.schoolProfilePanel) return;
-  const profile = getSchoolProfile(schoolName);
+  const enrichment = getSchoolEnrichment(schoolName);
+  const profile = enrichment || getSchoolProfile(schoolName);
   const national = getNationalColleges().find((college) => college.name === schoolName);
   const group = state.groups.find((item) => item.school === schoolName);
   const tags = inferCollegeTags({ ...(national || {}), ...(group || {}), name: schoolName, school: schoolName });
-  const strengths = profile?.strengths || group?.programs?.map((program) => program.name).slice(0, 6) || [];
-  const featured = profile?.featuredMajors || group?.programs?.map((program) => program.name).slice(0, 6) || [];
-  const links = profile?.links || (group?.website ? [["学校官网", group.website]] : []);
+  const strengths = profile?.strengths || profile?.advantageMajors?.map((item) => item.name) || group?.programs?.map((program) => program.name).slice(0, 6) || [];
+  const featured = profile?.featuredMajors || profile?.advantageMajors?.map((item) => item.name) || group?.programs?.map((program) => program.name).slice(0, 6) || [];
+  const links = getAdmissionLinks(schoolName, national, group, profile);
+  const localAsset = getLocalCollegeAsset(schoolName);
   els.schoolProfilePanel.classList.add("active");
   els.schoolProfilePanel.innerHTML = `
     <h3>${escapeHtml(schoolName)} ${profile?.shortName ? `<span class="muted">· ${escapeHtml(profile.shortName)}</span>` : ""}</h3>
@@ -1249,13 +1430,14 @@ function showSchoolProfile(schoolName, scrollIntoView = true) {
         <p>${escapeHtml(profile?.overview || buildNationalOverview(national, group))}</p>
         <p><strong>专业优势：</strong>${escapeHtml(strengths.length ? strengths.join("、") : "待导入学校官网/招生章程资料")}</p>
         <p><strong>特色专业：</strong>${escapeHtml(featured.length ? featured.join("、") : "待导入")}</p>
+        ${renderLocalCollegeAsset(localAsset)}
       </section>
       <section class="profile-block">
         <p><strong>毕业去向：</strong>${escapeHtml(profile?.outcomes || "待导入就业质量报告。建议先看学校就业质量年度报告，再结合专业、城市和行业周期判断。")}</p>
         <p><strong>就业信息：</strong>${escapeHtml(profile?.employment || "就业率、升学率和单位流向以学校最新就业质量报告为准。")}</p>
+        <h4>官网 / 招生入口</h4>
         <div class="profile-links">
-          ${links.map(([label, url]) => `<a href="${escapeAttr(url)}" target="_blank" rel="noreferrer">${escapeHtml(label)}</a>`).join("")}
-          <a href="https://gaokao.chsi.com.cn/" target="_blank" rel="noreferrer">阳光高考</a>
+          ${links.map((item) => `<a href="${escapeAttr(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.label)}</a>`).join("")}
         </div>
       </section>
     </div>
@@ -1341,7 +1523,7 @@ function renderNationalColleges() {
         const tags = inferCollegeTags(college);
         return `
       <tr>
-        <td><p class="school-name">${escapeHtml(college.name)}</p><p class="school-sub">序号 ${college.no}</p></td>
+        <td><button class="school-name link-button national-detail-btn" data-school="${escapeAttr(college.name)}">${escapeHtml(college.name)}</button><p class="school-sub">序号 ${college.no}</p></td>
         <td>${escapeHtml(college.province)} · ${escapeHtml(college.city || "-")}</td>
         <td><span class="tag">${escapeHtml(college.level)}</span></td>
         <td><div class="tag-row">${tags.map(renderTag).join("")}</div></td>
@@ -1378,6 +1560,7 @@ function showNationalCollegeProfile(schoolName) {
   const legacy = getSchoolProfile(schoolName);
   const tags = inferCollegeTags({ ...(national || {}), ...(group || {}), name: schoolName, school: schoolName });
   const advantageMajors = profile?.advantageMajors || (legacy?.strengths || []).map((name) => ({ name, intro: "该方向来自已维护的学校优势专业摘要，需结合学校官网和招生章程继续核验。" }));
+  const localAsset = getLocalCollegeAsset(schoolName);
   els.nationalProfilePanel.classList.add("active");
   els.nationalProfilePanel.innerHTML = `
     <div class="national-profile-head">
@@ -1388,6 +1571,7 @@ function showNationalCollegeProfile(schoolName) {
       <div class="tag-row">${tags.map(renderTag).join("") || renderTag("资料待维护")}</div>
     </div>
     ${renderNationalProfileMetrics(profile)}
+    ${renderLocalCollegeAsset(localAsset, true)}
     <div class="profile-grid deep-profile-grid">
       <section class="profile-block">
         <h4>优势专业介绍</h4>
@@ -1404,6 +1588,11 @@ function showNationalCollegeProfile(schoolName) {
       <section class="profile-block">
         <h4>保研率、考研率、升学就业</h4>
         ${renderProgression(profile, schoolName)}
+      </section>
+      <section class="profile-block wide">
+        <h4>官网 / 招生简章 / 招生章程</h4>
+        <div class="profile-links">${getAdmissionLinks(schoolName, national, group, profile).map((item) => `<a href="${escapeAttr(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.label)}</a>`).join("")}</div>
+        <p class="source-note">招生章程、招生计划和录取规则每年可能更新，最终以学校招生网、省考试院和阳光高考平台发布为准。</p>
       </section>
       <section class="profile-block wide">
         <h4>学院官网</h4>
@@ -1502,6 +1691,31 @@ function renderProgression(profile, schoolName) {
   `;
 }
 
+function renderLocalCollegeAsset(asset, asPanel = false) {
+  if (!asset?.baoyan && !asset?.industry?.length && !asset?.gradient) return "";
+  const industryText = asset.industry
+    .map((item) => [item.category, item.level, item.authority, item.strengths].filter(Boolean).join(" · "))
+    .join("；");
+  const gradient = asset.gradient;
+  const body = `
+    <div class="local-asset-list">
+      ${asset.baoyan ? `<p><strong>保研资格：</strong>本地表格标记为具有推荐免试研究生资格的高校。</p>` : ""}
+      ${industryText ? `<p><strong>行业特色：</strong>${escapeHtml(industryText)}</p>` : ""}
+      ${gradient ? `<p><strong>院校梯度：</strong>${escapeHtml([gradient.region, gradient.batch, gradient.nature, gradient.tier].filter(Boolean).join(" · "))}</p>` : ""}
+      ${gradient?.recommendation ? `<p><strong>专业推荐：</strong>${escapeHtml(gradient.recommendation)}</p>` : ""}
+      ${gradient?.dormitory ? `<p><strong>宿舍条件：</strong>${escapeHtml(gradient.dormitory)}</p>` : ""}
+      ${gradient?.facilities ? `<p><strong>校内设施：</strong>${escapeHtml(gradient.facilities)}</p>` : ""}
+    </div>
+  `;
+  if (!asPanel) return body;
+  return `
+    <section class="local-asset-panel">
+      <h4>本地资料补充</h4>
+      ${body}
+    </section>
+  `;
+}
+
 function renderCollegeSites(profile, schoolName) {
   if (!profile?.collegeSites?.length) {
     const searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(`${schoolName} 学院 官网`)}`;
@@ -1514,16 +1728,54 @@ function renderCollegeSites(profile, schoolName) {
   `;
 }
 
+function getAdmissionLinks(schoolName, national, group, profile) {
+  const maintained = window.SCHOOL_ADMISSIONS?.[schoolName]?.links || [];
+  const profileLinks = normalizeProfileLinks(profile?.links);
+  const officialSite = profile?.officialSite || profileLinks.find((item) => item.label.includes("学校官网"))?.url || group?.website;
+  const admissionSite = profile?.admissionSite || profileLinks.find((item) => item.label.includes("招生"))?.url;
+  const defaults = [
+    officialSite ? { label: "学校官网", url: officialSite } : null,
+    admissionSite ? { label: "本科招生网", url: admissionSite } : null,
+    { label: "2026招生章程检索", url: `https://www.bing.com/search?q=${encodeURIComponent(`${schoolName} 2026 本科招生章程`)}` },
+    { label: "2026招生简章检索", url: `https://www.bing.com/search?q=${encodeURIComponent(`${schoolName} 2026 招生简章 本科招生网`)}` },
+    { label: "招生计划检索", url: `https://www.bing.com/search?q=${encodeURIComponent(`${schoolName} 2026 安徽 招生计划`)}` },
+    { label: "历年录取检索", url: `https://www.bing.com/search?q=${encodeURIComponent(`${schoolName} 安徽 历年录取分数线 位次`)}` },
+    { label: "阳光高考章程检索", url: `https://www.bing.com/search?q=${encodeURIComponent(`site:gaokao.chsi.com.cn/zsgs/zhangcheng ${schoolName} 招生章程`)}` }
+  ].filter(Boolean);
+  return uniqueLinks([...maintained, ...profileLinks, ...defaults]);
+}
+
+function normalizeProfileLinks(links) {
+  if (!Array.isArray(links)) return [];
+  return links
+    .map((item) => {
+      if (Array.isArray(item)) return { label: item[0], url: item[1] };
+      return item;
+    })
+    .filter((item) => item?.label && item?.url);
+}
+
+function uniqueLinks(links) {
+  const seen = new Set();
+  return links.filter((item) => {
+    const key = `${item.label}-${item.url}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function renderProfileSources(profile, schoolName) {
   const sources = profile?.sources || [];
   const defaults = [
-    { label: "阳光高考", url: "https://gaokao.chsi.com.cn/" },
+    ...getAdmissionLinks(schoolName, null, null, profile),
+    { label: "阳光高考首页", url: "https://gaokao.chsi.com.cn/" },
     { label: "学校官网检索", url: `https://www.bing.com/search?q=${encodeURIComponent(`${schoolName} 官网 学校简介`)}` },
     { label: "招生网检索", url: `https://www.bing.com/search?q=${encodeURIComponent(`${schoolName} 本科招生网 专业介绍`)}` },
     { label: "科研平台检索", url: `https://www.bing.com/search?q=${encodeURIComponent(`${schoolName} 重点实验室 科研平台`)}` },
     { label: "就业质量报告检索", url: `https://www.bing.com/search?q=${encodeURIComponent(`${schoolName} 本科教学质量报告 就业质量报告`)}` }
   ];
-  return [...sources, ...defaults]
+  return uniqueLinks([...sources, ...defaults])
     .map((item) => `<a href="${escapeAttr(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.label)}</a>`)
     .join("");
 }
@@ -2657,6 +2909,9 @@ function inferProgramsForCollege(college, profile) {
   if (profile?.featuredMajors?.length) {
     return profile.featuredMajors.slice(0, 6).map((name, index) => ({ code: String(index + 1).padStart(2, "0"), name }));
   }
+  if (profile?.advantageMajors?.length) {
+    return profile.advantageMajors.slice(0, 6).map((item, index) => ({ code: String(index + 1).padStart(2, "0"), name: item.name }));
+  }
   const name = college.name || "";
   let names;
   if (name.includes("医")) names = ["临床医学", "口腔医学", "医学影像学", "药学", "预防医学", "护理学"];
@@ -2739,7 +2994,20 @@ function inferCollegeTags(college) {
   if (remark.includes("民办") || nature.includes("民办")) tags.add("民办");
   if (remark.includes("中外合作")) tags.add("中外合作");
   if (college.level === "本科" || college.level === "高职（专科）") tags.add(college.level);
+  const local = getLocalCollegeAsset(name);
+  if (local.baoyan) tags.add("保研资格");
+  if (local.industry.length) tags.add("行业特色");
+  if (local.gradient) tags.add("生活设施");
   return Array.from(tags).slice(0, 8);
+}
+
+function getLocalCollegeAsset(schoolName) {
+  const assets = window.LOCAL_COLLEGE_ASSETS || {};
+  return {
+    baoyan: Array.isArray(assets.baoyan) && assets.baoyan.includes(schoolName),
+    industry: assets.industry?.[schoolName] || [],
+    gradient: assets.gradient?.[schoolName] || null
+  };
 }
 
 function formatRequirement(group) {
