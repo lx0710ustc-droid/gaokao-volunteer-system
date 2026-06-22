@@ -767,7 +767,7 @@ const state = {
   groups: [],
   draft: [],
   profile: null,
-  activeTab: "schools",
+  activeTab: "home",
   majorExpandMode: "default",
   currentUser: null
 };
@@ -853,6 +853,45 @@ function bindEvents() {
       state.activeTab = tab.dataset.tab;
       renderTabs();
     });
+  });
+
+  document.querySelectorAll("[data-jump-tab]").forEach((button) => {
+    button.addEventListener("click", () => setActiveTab(button.dataset.jumpTab));
+  });
+
+  document.querySelectorAll("[data-mobile-tab]").forEach((button) => {
+    button.addEventListener("click", () => setActiveTab(button.dataset.mobileTab));
+  });
+
+  const homeSearchInput = document.getElementById("homeSearchInput");
+  const homeSearchBtn = document.getElementById("homeSearchBtn");
+  const runHomeSearch = () => {
+    const keyword = homeSearchInput?.value.trim() || "";
+    if (!keyword) {
+      setActiveTab("schools");
+      return;
+    }
+    if (els.schoolSearch) {
+      els.schoolSearch.value = keyword;
+      renderSchoolTable();
+    }
+    if (els.nationalSearch) {
+      els.nationalSearch.value = keyword;
+      renderNationalColleges();
+    }
+    if (els.majorSearch) {
+      els.majorSearch.value = keyword;
+      state.majorExpandMode = "auto";
+      renderMajors();
+    }
+    setActiveTab("schools");
+  };
+  homeSearchBtn?.addEventListener("click", runHomeSearch);
+  homeSearchInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      runHomeSearch();
+    }
   });
 
   document.getElementById("candidateForm").addEventListener("input", (event) => {
@@ -1215,6 +1254,9 @@ function renderTabs() {
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.tab === state.activeTab);
   });
+  document.querySelectorAll("[data-mobile-tab]").forEach((tab) => {
+    tab.classList.toggle("active", tab.dataset.mobileTab === state.activeTab);
+  });
   document.querySelectorAll(".tab-panel").forEach((panel) => {
     const id = panel.id.replace("Panel", "");
     panel.classList.toggle("active", id === state.activeTab);
@@ -1224,6 +1266,9 @@ function renderTabs() {
 function setActiveTab(tabName) {
   state.activeTab = tabName;
   renderTabs();
+  if (window.innerWidth <= 820) {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 }
 
 function getBatchConfig() {
@@ -1343,7 +1388,7 @@ function renderSchoolTable() {
     const tr = document.createElement("tr");
     const alreadyAdded = state.draft.some((item) => item.groupId === group.id);
     const canAdd = group.eligibility.ok && !alreadyAdded;
-    const addLabel = alreadyAdded ? "已加入" : group.isNationalOnly ? "参考加入" : "加入";
+    const addLabel = alreadyAdded ? "已加入" : "加入";
     tr.innerHTML = `
       <td>
         <button class="school-name link-button detail-btn" data-school="${escapeAttr(group.school)}">${escapeHtml(group.school)} ${escapeHtml(group.groupCode)}组</button>
@@ -2471,7 +2516,7 @@ function renderDraft() {
   if (!state.draft.length) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = "志愿表为空。点击院校库里的“加入/参考加入”，系统会按点击顺序生成志愿表。";
+    empty.textContent = "志愿表为空。点击院校库里的“加入”，系统会按点击顺序生成志愿表。";
     els.draftList.append(empty);
     return;
   }

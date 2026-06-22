@@ -118,8 +118,9 @@
         <section class="content">
           <nav class="tabs query-tabs" aria-label="主功能">
             <div class="tab-group">
-              <span class="tab-group-label">信息查询</span>
-              <button class="tab active" data-tab="schools">院校库</button>
+              <span class="tab-group-label">首页</span>
+              <button class="tab active" data-tab="home">首页</button>
+              <button class="tab" data-tab="schools">院校库</button>
               <button class="tab" data-tab="national">全国院校</button>
               <button class="tab" data-tab="majors">专业库</button>
               <button class="tab" data-tab="careers">职业库</button>
@@ -128,6 +129,8 @@
               <button class="tab" data-tab="history">分数线</button>
               <button class="tab" data-tab="batchline">批次线</button>
               <button class="tab" data-tab="guide">省份指南</button>
+              <button class="tab" data-tab="assessment">测评</button>
+              <button class="tab" data-tab="info">资讯</button>
             </div>
             <div class="tab-group fill-group">
               <span class="tab-group-label">填志愿</span>
@@ -137,10 +140,110 @@
             <div class="tab-group utility-group">
               <button class="tab" data-tab="knowledge">咨询知识库</button>
               <button class="tab" data-tab="data">数据维护</button>
+              <button class="tab" data-tab="profile">我的</button>
             </div>
           </nav>
 
-          <section class="tab-panel active" id="schoolsPanel">
+          <section class="tab-panel active home-panel" id="homePanel">
+            <div class="home-hero">
+              <div class="hero-copy">
+                <p class="home-kicker">安徽 2026 新高考志愿填报</p>
+                <h2>用院校、专业、职业和位次一起做决策</h2>
+                <p>输入分数和选科后，系统按分数段展示候选院校，再用冲、稳、保生成志愿草表；院校详情、专业介绍、提前批、批次线和同分去向都放在同一个工作台里。</p>
+                <div class="hero-search">
+                  <input id="homeSearchInput" type="search" placeholder="搜大学 / 专业 / 职业 / 填报问题" />
+                  <button class="text-button primary" id="homeSearchBtn" type="button">搜索</button>
+                </div>
+                <div class="hero-actions">
+                  <button class="text-button primary" data-jump-tab="schools" type="button">查院校</button>
+                  <button class="text-button" data-jump-tab="draft" type="button">看志愿表</button>
+                  <button class="text-button" data-jump-tab="simulation" type="button">模拟投档</button>
+                </div>
+              </div>
+              <div class="ai-card">
+                <span class="ai-card-label">AI 智能模拟填报</span>
+                <div class="gauge-ring">
+                  <strong>1968</strong>
+                  <span>组可参考志愿</span>
+                </div>
+                <div class="risk-legend">
+                  <span><i class="dot high"></i>危 169</span>
+                  <span><i class="dot sprint"></i>冲 421</span>
+                  <span><i class="dot steady"></i>稳 542</span>
+                  <span><i class="dot safe"></i>保 836</span>
+                </div>
+                <button class="text-button primary" data-jump-tab="simulation" type="button">开始模拟</button>
+              </div>
+            </div>
+
+            <div class="quick-app-grid" aria-label="常用功能">
+              <button data-jump-tab="schools" type="button"><span>院</span><strong>查院校</strong></button>
+              <button data-jump-tab="majors" type="button"><span>专</span><strong>查专业</strong></button>
+              <button data-jump-tab="careers" type="button"><span>业</span><strong>查就业</strong></button>
+              <button data-jump-tab="knowledge" type="button"><span>公</span><strong>查考公</strong></button>
+              <button data-jump-tab="early" type="button"><span>批</span><strong>查提前批</strong></button>
+              <button data-jump-tab="rank" type="button"><span>同</span><strong>同分去向</strong></button>
+              <button data-jump-tab="rank" type="button"><span>位</span><strong>位次查询</strong></button>
+              <button data-jump-tab="batchline" type="button"><span>线</span><strong>批次线查询</strong></button>
+              <button data-jump-tab="guide" type="button"><span>艺</span><strong>艺体查询</strong></button>
+            </div>
+
+            <div class="home-section-title">
+              <h2>测评体系</h2>
+              <button class="link-button" data-jump-tab="assessment" type="button">查看全部</button>
+            </div>
+            <div class="assessment-grid compact">
+              <article><h3>兴趣测评 Interest</h3><p>识别喜欢的活动、学科和工作场景，辅助匹配专业方向。</p><span>预计 15-20 分钟</span></article>
+              <article><h3>性格测评 Character</h3><p>分析沟通、协作、稳定性和适应方式，提示专业与职业环境。</p><span>预计 15-20 分钟</span></article>
+              <article><h3>能力测评 Ability</h3><p>从数理、语言、空间、动手和信息处理能力看专业适配度。</p><span>预计 15-20 分钟</span></article>
+              <article><h3>价值观测评 Value</h3><p>关注稳定、收入、成长、城市和社会价值等选择偏好。</p><span>预计 10-15 分钟</span></article>
+              <article><h3>意向测评 学科倾向</h3><p>结合选科、成绩和兴趣，生成专业类优先级建议。</p><span>预计 10-15 分钟</span></article>
+            </div>
+
+            <div class="home-two-column">
+              <section class="home-card">
+                <div class="home-section-title inline"><h2>热门专业排行榜</h2><button class="link-button" data-jump-tab="majors" type="button">查专业</button></div>
+                <ol class="ranking-list">
+                  <li><span>1</span><strong>软件工程</strong><em>本科 · 热度 67331</em></li>
+                  <li><span>2</span><strong>金融学</strong><em>本科 · 热度 58025</em></li>
+                  <li><span>3</span><strong>计算机科学与技术</strong><em>本科 · 热度 53033</em></li>
+                  <li><span>4</span><strong>财务管理</strong><em>本科 · 热度 29982</em></li>
+                  <li><span>5</span><strong>会计学</strong><em>本科 · 热度 29761</em></li>
+                </ol>
+              </section>
+              <section class="home-card">
+                <div class="home-section-title inline"><h2>高考资讯</h2><button class="link-button" data-jump-tab="info" type="button">查看全部</button></div>
+                <div class="news-list mini">
+                  <article><i class="news-thumb blue"></i><div><h3>2026 安徽普通高校招生政策核对清单</h3><p>填报前先确认批次、志愿单位、投档规则和征集安排。</p></div></article>
+                  <article><i class="news-thumb green"></i><div><h3>双一流高校扩招新动向</h3><p>关注 AI+、交叉学科、拔尖基地和强基计划简章。</p></div></article>
+                  <article><i class="news-thumb gold"></i><div><h3>提前批适合哪些学生</h3><p>军警、定向、公费师范等路径要先核对约束条件。</p></div></article>
+                </div>
+              </section>
+            </div>
+
+            <div class="home-section-title">
+              <h2>热门排行榜 | 大学 / 专业 / 薪酬</h2>
+              <button class="link-button" data-jump-tab="national" type="button">院校排行</button>
+            </div>
+            <div class="rank-card-grid">
+              <article><h3>校友会大学排名</h3><p><strong>北京大学</strong><span>综合类 · 8★</span></p><p><strong>清华大学</strong><span>综合类 · 8★</span></p><p><strong>中国科学技术大学</strong><span>理工类 · 8★</span></p></article>
+              <article><h3>软科大学排名</h3><p><strong>清华大学</strong><span>参考第 1</span></p><p><strong>北京大学</strong><span>参考第 2</span></p><p><strong>浙江大学</strong><span>参考第 3</span></p></article>
+              <article><h3>热门院校关注</h3><p><strong>中国科学技术大学</strong><span>合肥 · 985/双一流</span></p><p><strong>合肥工业大学</strong><span>合肥 · 211/双一流</span></p><p><strong>安徽大学</strong><span>合肥 · 211/双一流</span></p></article>
+            </div>
+
+            <div class="home-section-title">
+              <h2>推荐视频课</h2>
+              <button class="link-button" data-jump-tab="knowledge" type="button">规划师培训</button>
+            </div>
+            <div class="video-grid">
+              <article><div>基于分数看院校</div><h3>如何用位次筛选大学</h3></article>
+              <article><div>基于专业看选科</div><h3>如何按专业组填志愿</h3></article>
+              <article><div>新高考选科</div><h3>到底要不要选化学</h3></article>
+              <article><div>3+1+2 模式</div><h3>常见误区与避坑清单</h3></article>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="schoolsPanel">
             <div class="toolbar">
               <div class="search-box">
                 <input id="schoolSearchInput" type="search" placeholder="搜索院校、城市、专业组、专业" />
@@ -396,6 +499,72 @@
             </div>
           </section>
 
+          <section class="tab-panel" id="assessmentPanel">
+            <div class="section-head">
+              <div>
+                <h2>学业与职业测评</h2>
+                <p>把兴趣、性格、能力、价值观和学科倾向拆开看，再回到院校专业组里做取舍</p>
+              </div>
+            </div>
+            <div class="assessment-grid">
+              <article>
+                <span class="assessment-icon">IN</span>
+                <h3>兴趣测评 Interest</h3>
+                <p>看学生更喜欢研究、操作、表达、管理、服务还是创造类活动，适合先做专业大类筛选。</p>
+                <button class="text-button" data-jump-tab="majors" type="button">关联专业</button>
+              </article>
+              <article>
+                <span class="assessment-icon">CH</span>
+                <h3>性格测评 Character</h3>
+                <p>关注耐心、外向性、计划性、抗压和团队协作，帮助判断专业学习环境和职业环境。</p>
+                <button class="text-button" data-jump-tab="careers" type="button">关联职业</button>
+              </article>
+              <article>
+                <span class="assessment-icon">AB</span>
+                <h3>能力测评 Ability</h3>
+                <p>从数学逻辑、语言表达、空间想象、动手实践和信息分析看专业匹配度。</p>
+                <button class="text-button" data-jump-tab="majors" type="button">看专业课</button>
+              </article>
+              <article>
+                <span class="assessment-icon">VA</span>
+                <h3>价值观测评 Value</h3>
+                <p>把稳定、收入、城市、升学、体制内、科研和创业等偏好显性化，减少后悔。</p>
+                <button class="text-button" data-jump-tab="draft" type="button">用于志愿表</button>
+              </article>
+              <article>
+                <span class="assessment-icon">SU</span>
+                <h3>学科倾向测评</h3>
+                <p>结合选科组合、单科成绩和课程偏好，提示工学、医学、理学、经管、法学等方向。</p>
+                <button class="text-button" data-jump-tab="schools" type="button">推荐院校</button>
+              </article>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="infoPanel">
+            <div class="section-head">
+              <div>
+                <h2>高考资讯</h2>
+                <p>政策速递、高校导航、专业指南和填报方法集中查看</p>
+              </div>
+            </div>
+            <div class="toolbar info-toolbar">
+              <div class="search-box">
+                <input type="search" placeholder="搜索资讯名称、院校、专业、政策关键词" />
+              </div>
+              <button class="seg active" type="button">全部</button>
+              <button class="seg" type="button">资讯速递</button>
+              <button class="seg" type="button">高校导航</button>
+              <button class="seg" type="button">专业指南</button>
+            </div>
+            <div class="info-list">
+              <article><i class="news-thumb blue"></i><div><span>置顶 · 2026</span><h3>安徽新高考志愿填报：院校专业组、投档和退档怎么理解</h3><p>先看批次，再看选科要求、招生计划、专业组内专业和调剂规则。</p></div></article>
+              <article><i class="news-thumb green"></i><div><span>高校导航</span><h3>985/211/双一流院校详情怎么查</h3><p>系统内点击大学名称，可查看官网、招生网、优势专业、重点实验室和就业升学信息。</p></div></article>
+              <article><i class="news-thumb gold"></i><div><span>专业指南</span><h3>计算机、电子信息、自动化、人工智能有什么区别</h3><p>从核心课程、适合人群、就业岗位和读研方向做对比。</p></div></article>
+              <article><i class="news-thumb teal"></i><div><span>提前批</span><h3>公费师范、军警、定向医学：哪些承诺必须提前确认</h3><p>重点看体检政审、服务年限、违约责任和退档影响。</p></div></article>
+              <article><i class="news-thumb purple"></i><div><span>志愿方法</span><h3>冲稳保比例怎么定：按位次、分数带和专业偏好一起看</h3><p>不是只按分数排序，专业组内专业和是否服从调剂同样重要。</p></div></article>
+            </div>
+          </section>
+
           <section class="tab-panel" id="knowledgePanel">
             <div class="section-head">
               <div>
@@ -464,8 +633,47 @@
               </section>
             </div>
           </section>
+
+          <section class="tab-panel" id="profilePanel">
+            <div class="profile-dashboard">
+              <section class="profile-hero">
+                <div class="avatar">用</div>
+                <div>
+                  <h2>登录 / 注册</h2>
+                  <p>登录后可以保存志愿表、测评结果和收藏院校。当前账号由管理员发放，用户不能自行改密。</p>
+                </div>
+              </section>
+              <section class="vip-card">
+                <div>
+                  <strong>志愿咨询服务</strong>
+                  <p>适合需要一对一核对院校专业组、招生章程和冲稳保比例的家庭。</p>
+                </div>
+                <button class="text-button" data-jump-tab="knowledge" type="button">联系咨询</button>
+              </section>
+              <div class="profile-action-row">
+                <button data-jump-tab="draft" type="button"><span>志</span><strong>我的志愿单</strong></button>
+                <button data-jump-tab="assessment" type="button"><span>测</span><strong>我的测评</strong></button>
+              </div>
+              <div class="profile-menu-grid">
+                <button data-jump-tab="schools" type="button">我的收藏</button>
+                <button data-jump-tab="knowledge" type="button">我的预约</button>
+                <button data-jump-tab="knowledge" type="button">我的服务</button>
+                <button data-jump-tab="knowledge" type="button">联系客服</button>
+                <button data-jump-tab="data" type="button">意见反馈</button>
+                <button data-jump-tab="data" type="button">设置中心</button>
+              </div>
+            </div>
+          </section>
         </section>
       </main>
+
+      <nav class="mobile-bottom-nav" aria-label="手机端常用导航">
+        <button class="active" data-mobile-tab="home" type="button"><span>填</span><strong>首页</strong></button>
+        <button data-mobile-tab="assessment" type="button"><span>测</span><strong>测评</strong></button>
+        <button class="mobile-voice" data-mobile-tab="simulation" type="button"><span>AI</span><strong>模拟</strong></button>
+        <button data-mobile-tab="info" type="button"><span>讯</span><strong>资讯</strong></button>
+        <button data-mobile-tab="profile" type="button"><span>我</span><strong>我的</strong></button>
+      </nav>
     </div>
 
     <template id="draftItemTemplate">
