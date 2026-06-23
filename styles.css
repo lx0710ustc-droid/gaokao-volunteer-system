@@ -2178,6 +2178,7 @@ body.is-admin .account-panel {
   color: #101828;
   background: transparent;
   font-weight: 700;
+  cursor: pointer;
 }
 
 .mode-tabs button {
@@ -2206,6 +2207,11 @@ body.is-admin .account-panel {
 .filter-line .active,
 .major-discipline-nav .active {
   color: #0aaeb5;
+}
+
+.filter-line button:hover,
+.major-discipline-nav button:hover {
+  color: #1767e6;
 }
 
 .inline-toolbar {
@@ -2246,12 +2252,27 @@ body.is-admin .account-panel {
   width: 72px;
   height: 72px;
   font-size: 20px;
+  overflow: hidden;
 }
 
 .mini-emblem {
   width: 42px;
   height: 42px;
   font-size: 13px;
+  overflow: hidden;
+}
+
+.school-emblem img,
+.mini-emblem img {
+  display: block;
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+}
+
+.school-emblem span,
+.mini-emblem b {
+  font: inherit;
 }
 
 .school-card-main p,

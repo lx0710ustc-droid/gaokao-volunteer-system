@@ -141,6 +141,66 @@ const ELITE_TAGS = {
   "国防科技大学": ["985", "211", "双一流"]
 };
 
+const SCHOOL_OFFICIAL_SITES = {
+  "北京大学": "https://www.pku.edu.cn/",
+  "清华大学": "https://www.tsinghua.edu.cn/",
+  "中国人民大学": "https://www.ruc.edu.cn/",
+  "北京航空航天大学": "https://www.buaa.edu.cn/",
+  "北京理工大学": "https://www.bit.edu.cn/",
+  "北京交通大学": "https://www.bjtu.edu.cn/",
+  "北京科技大学": "https://www.ustb.edu.cn/",
+  "北京化工大学": "https://www.buct.edu.cn/",
+  "北京邮电大学": "https://www.bupt.edu.cn/",
+  "中国农业大学": "https://www.cau.edu.cn/",
+  "北京林业大学": "https://www.bjfu.edu.cn/",
+  "北京中医药大学": "https://www.bucm.edu.cn/",
+  "北京外国语大学": "https://www.bfsu.edu.cn/",
+  "北京师范大学": "https://www.bnu.edu.cn/",
+  "中央财经大学": "https://www.cufe.edu.cn/",
+  "对外经济贸易大学": "https://www.uibe.edu.cn/",
+  "中国政法大学": "https://www.cupl.edu.cn/",
+  "中央民族大学": "https://www.muc.edu.cn/",
+  "南开大学": "https://www.nankai.edu.cn/",
+  "天津大学": "https://www.tju.edu.cn/",
+  "复旦大学": "https://www.fudan.edu.cn/",
+  "同济大学": "https://www.tongji.edu.cn/",
+  "上海交通大学": "https://www.sjtu.edu.cn/",
+  "华东师范大学": "https://www.ecnu.edu.cn/",
+  "上海财经大学": "https://www.sufe.edu.cn/",
+  "南京大学": "https://www.nju.edu.cn/",
+  "东南大学": "https://www.seu.edu.cn/",
+  "南京航空航天大学": "https://www.nuaa.edu.cn/",
+  "南京理工大学": "https://www.njust.edu.cn/",
+  "苏州大学": "https://www.suda.edu.cn/",
+  "浙江大学": "https://www.zju.edu.cn/",
+  "中国科学技术大学": "https://www.ustc.edu.cn/",
+  "合肥工业大学": "https://www.hfut.edu.cn/",
+  "安徽大学": "https://www.ahu.edu.cn/",
+  "安徽医科大学": "https://www.ahmu.edu.cn/",
+  "安徽师范大学": "https://www.ahnu.edu.cn/",
+  "安徽农业大学": "https://www.ahau.edu.cn/",
+  "安徽工业大学": "https://www.ahut.edu.cn/",
+  "安徽理工大学": "https://www.aust.edu.cn/",
+  "安徽财经大学": "https://www.aufe.edu.cn/",
+  "厦门大学": "https://www.xmu.edu.cn/",
+  "山东大学": "https://www.sdu.edu.cn/",
+  "中国海洋大学": "https://www.ouc.edu.cn/",
+  "武汉大学": "https://www.whu.edu.cn/",
+  "华中科技大学": "https://www.hust.edu.cn/",
+  "中山大学": "https://www.sysu.edu.cn/",
+  "华南理工大学": "https://www.scut.edu.cn/",
+  "四川大学": "https://www.scu.edu.cn/",
+  "电子科技大学": "https://www.uestc.edu.cn/",
+  "重庆大学": "https://www.cqu.edu.cn/",
+  "西安交通大学": "https://www.xjtu.edu.cn/",
+  "西北工业大学": "https://www.nwpu.edu.cn/",
+  "哈尔滨工业大学": "https://www.hit.edu.cn/",
+  "大连理工大学": "https://www.dlut.edu.cn/",
+  "东北大学": "https://www.neu.edu.cn/",
+  "吉林大学": "https://www.jlu.edu.cn/",
+  "兰州大学": "https://www.lzu.edu.cn/"
+};
+
 const SCHOOL_PROFILES = {
   "中国科学技术大学": {
     shortName: "中国科大 / 中科大",
@@ -771,6 +831,13 @@ const state = {
   profile: null,
   activeTab: "home",
   majorExpandMode: "default",
+  schoolFilters: {
+    batch: "all",
+    province: "all",
+    type: "all",
+    feature: "all",
+    nature: "all"
+  },
   currentUser: null
 };
 
@@ -923,6 +990,8 @@ function bindEvents() {
   [els.schoolSearch, els.riskFilter, els.matchFilter].forEach((input) => {
     input.addEventListener("input", renderSchoolTable);
   });
+  bindSchoolFilterButtons();
+  bindRankQuery();
 
   [els.nationalSearch, els.nationalProvince, els.nationalLevel, els.nationalNature].forEach((input) => {
     input.addEventListener("input", renderNationalColleges);
@@ -985,6 +1054,124 @@ function bindEvents() {
   els.logoutBtn?.addEventListener("click", logout);
   els.generateAccount?.addEventListener("click", generateAccountSnippet);
   els.copyAccountSnippet?.addEventListener("click", copyAccountSnippet);
+}
+
+function bindSchoolFilterButtons() {
+  document.querySelectorAll(".college-filter-board .filter-line").forEach((line) => {
+    const label = line.querySelector("strong")?.textContent || "";
+    const key = getSchoolFilterKey(label);
+    if (!key) return;
+    line.querySelectorAll("button").forEach((button) => {
+      button.addEventListener("click", () => {
+        const text = button.textContent.trim();
+        if (text === "更多") {
+          showMessage("更多省份已在“全国院校”栏目提供完整筛选；这里先展示常用省份。");
+          return;
+        }
+        line.querySelectorAll("button").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        state.schoolFilters[key] = normalizeSchoolFilterValue(key, text);
+        renderSchoolTable();
+      });
+    });
+  });
+
+  document.querySelectorAll(".college-filter-board .mode-tabs button").forEach((button) => {
+    button.addEventListener("click", () => {
+      document.querySelectorAll(".college-filter-board .mode-tabs button").forEach((item) => item.classList.remove("active"));
+      button.classList.add("active");
+      showMessage(`${button.textContent.trim()}模式已切换；艺术类和单招的真实计划可继续在数据维护中导入。`);
+    });
+  });
+}
+
+function getSchoolFilterKey(label) {
+  if (label.includes("批次")) return "batch";
+  if (label.includes("所属")) return "province";
+  if (label.includes("类型")) return "type";
+  if (label.includes("特色")) return "feature";
+  if (label.includes("办学")) return "nature";
+  return "";
+}
+
+function normalizeSchoolFilterValue(key, text) {
+  if (!text || text === "不限") return "all";
+  if (key === "type") return text.replace(/类$/, "");
+  return text;
+}
+
+function bindRankQuery() {
+  const board = document.querySelector(".rank-filter-board");
+  const resultCard = document.querySelector(".rank-result-card");
+  if (!board || !resultCard) return;
+  board.querySelectorAll(".filter-line").forEach((line) => {
+    line.querySelectorAll("button").forEach((button) => {
+      button.addEventListener("click", () => {
+        line.querySelectorAll("button").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        updateSameScoreResult();
+      });
+    });
+  });
+  board.querySelector(".rank-score-row button")?.addEventListener("click", updateSameScoreResult);
+  board.querySelector(".rank-score-row input")?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      updateSameScoreResult();
+    }
+  });
+}
+
+function updateSameScoreResult() {
+  const board = document.querySelector(".rank-filter-board");
+  const card = document.querySelector(".rank-result-card");
+  if (!board || !card) return;
+  const lines = [...board.querySelectorAll(".filter-line")];
+  const year = getActiveFilterText(lines[0]) || "2025";
+  const subject = getActiveFilterText(lines[1]) || "物理";
+  const province = getActiveFilterText(lines[2]) || "安徽";
+  const score = Number(board.querySelector(".rank-score-row input")?.value || 550);
+  const resolvedProvince = province === "不限" ? "安徽" : province;
+  const rows = buildSameScoreRows(resolvedProvince, score);
+  const sameCount = estimateSameScoreCount(score, resolvedProvince);
+  const rankStart = estimateRankFromScore(score);
+  const rankEnd = rankStart + sameCount - 1;
+  const h2 = card.querySelector("h2");
+  const summary = card.querySelector("p");
+  const svgTexts = card.querySelectorAll("svg text");
+  const tbody = card.querySelector("tbody");
+  if (h2) h2.innerHTML = `${escapeHtml(resolvedProvince)} - ${escapeHtml(year)}年同分去向参考 <span>${escapeHtml(subject)}类，2026暂为模拟位次，2025/2024可后续导入真实表</span>`;
+  if (summary) summary.innerHTML = `${escapeHtml(String(score))}分同分人数 <strong>${formatNumber(sameCount)}人</strong>`;
+  if (svgTexts[0]) svgTexts[0].textContent = `分数: ${score}分，同分${sameCount}人`;
+  if (svgTexts[1]) svgTexts[1].textContent = `位次: ${formatNumber(rankStart)}-${formatNumber(rankEnd)}`;
+  if (tbody) {
+    tbody.innerHTML = rows
+      .map((row) => `<tr><td>${escapeHtml(row.school)}</td><td>${escapeHtml(row.majors)}</td><td>${escapeHtml(String(row.count))}</td></tr>`)
+      .join("");
+  }
+}
+
+function getActiveFilterText(line) {
+  return line?.querySelector("button.active")?.textContent.trim() || "";
+}
+
+function buildSameScoreRows(province, score) {
+  const preferred = buildSchoolCatalogRows()
+    .filter((group) => province === "不限" || group.province === province || group.city === province)
+    .sort((a, b) => Math.abs(midpointScoreForGroup(a) - score) - Math.abs(midpointScoreForGroup(b) - score))
+    .slice(0, 12);
+  const rows = preferred.length ? preferred : buildSchoolCatalogRows().slice(0, 12);
+  return rows.map((group, index) => ({
+    school: group.school,
+    majors: group.programs.slice(0, 5).map((program) => program.name).join("、") || "招生专业待导入",
+    count: Math.max(1, Math.round(estimateSameScoreCount(score, group.province) / (index + 4)))
+  }));
+}
+
+function estimateSameScoreCount(score, province) {
+  const base = Math.max(16, Math.round((750 - Math.min(740, Math.max(200, score))) * 2.6));
+  const provinceSeed = Math.abs(seededOffset(province || "安徽", 2026));
+  return Math.max(8, base + (provinceSeed % 180));
 }
 
 function runGlobalSearch(rawKeyword) {
@@ -1466,9 +1653,11 @@ function filteredGroups() {
     }))
     .filter((group) => {
       const range = scoreRangeForGroup(group);
+      const filters = state.schoolFilters || {};
       if (range && !rangesOverlap(range, [scoreBand.low, scoreBand.high])) return false;
       if (matchFilter === "eligible" && !group.eligibility.ok) return false;
       if (riskFilter !== "all" && group.risk.key !== riskFilter) return false;
+      if (!matchesSchoolFilters(group, filters)) return false;
       if (!q) return true;
       const haystack = [
         group.school,
@@ -1482,6 +1671,20 @@ function filteredGroups() {
       return haystack.includes(q);
     })
     .sort((a, b) => riskWeight(a.risk.key) - riskWeight(b.risk.key) || b.preference.score - a.preference.score || a.lastRank - b.lastRank);
+}
+
+function matchesSchoolFilters(group, filters) {
+  if (filters.batch && filters.batch !== "all") {
+    if (filters.batch === "本科" && group.level !== "本科") return false;
+    if (filters.batch === "专科" && !String(group.level || "").includes("专科")) return false;
+  }
+  if (filters.province && filters.province !== "all" && group.province !== filters.province && group.city !== filters.province) return false;
+  const tags = Array.isArray(group.tags) ? group.tags : [];
+  const searchable = [group.level, group.nature, group.type, group.source, ...tags].filter(Boolean).join(" ");
+  if (filters.type && filters.type !== "all" && !searchable.includes(filters.type)) return false;
+  if (filters.feature && filters.feature !== "all" && !searchable.includes(filters.feature)) return false;
+  if (filters.nature && filters.nature !== "all" && !searchable.includes(filters.nature)) return false;
+  return true;
 }
 
 function buildSchoolCatalogRows() {
@@ -1533,7 +1736,7 @@ function nationalCollegeToCatalogRow(college) {
     tuition: "以章程为准",
     source: "教育部院校名单 + 参考分数带，非官方投档线",
     programs,
-    website: profile?.links?.[0]?.[1] || "",
+    website: SCHOOL_OFFICIAL_SITES[college.name] || profile?.links?.[0]?.[1] || "",
     isNationalOnly: true
   };
 }
@@ -1616,11 +1819,15 @@ function renderSchoolCards(groups) {
       const groupTags = Array.isArray(group.tags) ? group.tags : [];
       const tags = [group.province, group.type, ...groupTags].filter(Boolean).slice(0, 5);
       const initials = schoolInitials(group.school);
+      const logoUrl = getOfficialLogoUrl(group);
       const alreadyAdded = state.draft.some((item) => item.groupId === group.id);
       const canAdd = group.eligibility?.ok && !alreadyAdded;
       return `
         <article class="school-card">
-          <div class="school-emblem">${escapeHtml(initials)}</div>
+          <div class="school-emblem">
+            ${logoUrl ? `<img src="${escapeAttr(logoUrl)}" alt="${escapeAttr(group.school)}校徽" loading="lazy" referrerpolicy="no-referrer" />` : ""}
+            <span ${logoUrl ? "hidden" : ""}>${escapeHtml(initials)}</span>
+          </div>
           <div class="school-card-main">
             <button class="school-name link-button detail-btn" data-school="${escapeAttr(group.school)}">${escapeHtml(group.school)}</button>
             <p>${escapeHtml(group.type || "综合类")} / ${escapeHtml(group.nature || "公办")} / ${escapeHtml(group.city || group.province || "")}</p>
@@ -1644,6 +1851,7 @@ function renderSchoolCards(groups) {
   els.schoolCardGrid.querySelectorAll(".favorite-btn").forEach((btn) => {
     btn.addEventListener("click", () => showMessage("已加入收藏演示列表；正式版可接入用户收藏表。"));
   });
+  bindLogoFallbacks(els.schoolCardGrid);
 }
 
 function renderSchoolRecommendations(groups) {
@@ -1667,7 +1875,10 @@ function renderSchoolRecommendations(groups) {
     .map((group, index) => `
       <li>
         <span>${index + 1}</span>
-        <i class="mini-emblem">${escapeHtml(schoolInitials(group.school))}</i>
+        <i class="mini-emblem">
+          ${getOfficialLogoUrl(group) ? `<img src="${escapeAttr(getOfficialLogoUrl(group))}" alt="${escapeAttr(group.school)}校徽" loading="lazy" referrerpolicy="no-referrer" />` : ""}
+          <b ${getOfficialLogoUrl(group) ? "hidden" : ""}>${escapeHtml(schoolInitials(group.school))}</b>
+        </i>
         <button class="link-button detail-btn" data-school="${escapeAttr(group.school)}">${escapeHtml(group.school)}</button>
       </li>
     `)
@@ -1675,11 +1886,44 @@ function renderSchoolRecommendations(groups) {
   els.schoolRecommendList.querySelectorAll(".detail-btn").forEach((btn) => {
     btn.addEventListener("click", () => showSchoolProfile(btn.dataset.school));
   });
+  bindLogoFallbacks(els.schoolRecommendList);
 }
 
 function schoolInitials(name) {
   const cleaned = String(name || "校").replace(/大学|学院|医学院|职业技术|科技|工业|理工/g, "");
   return cleaned.slice(0, 2) || "校";
+}
+
+function getOfficialLogoUrl(groupOrSchool) {
+  const schoolName = typeof groupOrSchool === "string" ? groupOrSchool : groupOrSchool?.school;
+  const group = typeof groupOrSchool === "string" ? getCatalogGroupById(groupOrSchool) : groupOrSchool;
+  const national = getNationalColleges().find((college) => college.name === schoolName);
+  const profile = getSchoolEnrichment(schoolName) || getSchoolProfile(schoolName);
+  const profileLinks = normalizeProfileLinks(profile?.links);
+  const officialSite =
+    profile?.officialSite ||
+    SCHOOL_OFFICIAL_SITES[schoolName] ||
+    profileLinks.find((item) => item.label.includes("官网"))?.url ||
+    group?.website ||
+    national?.website ||
+    "";
+  if (!officialSite || !/^https?:\/\//i.test(officialSite)) return "";
+  try {
+    return new URL("/favicon.ico", officialSite).href;
+  } catch (error) {
+    return "";
+  }
+}
+
+function bindLogoFallbacks(root) {
+  if (!root) return;
+  root.querySelectorAll(".school-emblem img, .mini-emblem img").forEach((img) => {
+    img.addEventListener("error", () => {
+      img.hidden = true;
+      const fallback = img.nextElementSibling;
+      if (fallback) fallback.hidden = false;
+    }, { once: true });
+  });
 }
 
 function renderRankReferenceText(group) {
