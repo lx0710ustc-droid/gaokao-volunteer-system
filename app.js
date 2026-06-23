@@ -760,7 +760,9 @@ const STORAGE_KEYS = {
   groups: "ah-gaokao-groups-v1",
   draft: "ah-gaokao-draft-v1",
   profile: "ah-gaokao-profile-v1",
-  auth: "ah-gaokao-auth-v1"
+  auth: "ah-gaokao-auth-v1",
+  registeredUsers: "ah-gaokao-registered-users-v1",
+  smsCodes: "ah-gaokao-sms-codes-v1"
 };
 
 const state = {
@@ -797,11 +799,15 @@ function cacheElements() {
     majorKeyword: document.getElementById("majorKeywordInput"),
     profileStatus: document.getElementById("profileStatus"),
     policyList: document.getElementById("policyList"),
+    topGlobalSearch: document.getElementById("topGlobalSearchInput"),
+    topGlobalSearchBtn: document.getElementById("topGlobalSearchBtn"),
     schoolSearch: document.getElementById("schoolSearchInput"),
     riskFilter: document.getElementById("riskFilterInput"),
     matchFilter: document.getElementById("matchFilterInput"),
     insightStrip: document.getElementById("insightStrip"),
     schoolProfilePanel: document.getElementById("schoolProfilePanel"),
+    schoolCardGrid: document.getElementById("schoolCardGrid"),
+    schoolRecommendList: document.getElementById("schoolRecommendList"),
     schoolTableBody: document.querySelector("#schoolTable tbody"),
     nationalMeta: document.getElementById("nationalMeta"),
     nationalSearch: document.getElementById("nationalSearchInput"),
@@ -821,12 +827,14 @@ function cacheElements() {
     majorCategory: document.getElementById("majorCategoryInput"),
     majorStats: document.getElementById("majorStats"),
     majorGrid: document.getElementById("majorGrid"),
+    majorDisciplineNav: document.getElementById("majorDisciplineNav"),
     majorExpand: document.getElementById("majorExpandBtn"),
     majorCollapse: document.getElementById("majorCollapseBtn"),
     careerSearch: document.getElementById("careerSearchInput"),
     careerCategory: document.getElementById("careerCategoryInput"),
     careerStats: document.getElementById("careerStats"),
     careerGrid: document.getElementById("careerGrid"),
+    careerSideNav: document.getElementById("careerSideNav"),
     knowledgeGrid: document.getElementById("knowledgeGrid"),
     draftCounter: document.getElementById("draftCounter"),
     draftList: document.getElementById("draftList"),
@@ -891,6 +899,13 @@ function bindEvents() {
     if (event.key === "Enter") {
       event.preventDefault();
       runHomeSearch();
+    }
+  });
+  els.topGlobalSearchBtn?.addEventListener("click", () => runGlobalSearch(els.topGlobalSearch?.value || ""));
+  els.topGlobalSearch?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      runGlobalSearch(els.topGlobalSearch.value);
     }
   });
 
@@ -972,6 +987,24 @@ function bindEvents() {
   els.copyAccountSnippet?.addEventListener("click", copyAccountSnippet);
 }
 
+function runGlobalSearch(rawKeyword) {
+  const keyword = (rawKeyword || "").trim();
+  if (!keyword) {
+    setActiveTab("schools");
+    return;
+  }
+  if (els.schoolSearch) els.schoolSearch.value = keyword;
+  if (els.nationalSearch) els.nationalSearch.value = keyword;
+  if (els.majorSearch) els.majorSearch.value = keyword;
+  if (els.careerSearch) els.careerSearch.value = keyword;
+  state.majorExpandMode = "auto";
+  renderSchoolTable();
+  renderNationalColleges();
+  renderMajors();
+  renderCareers();
+  setActiveTab("schools");
+}
+
 function initAuth() {
   const config = getAccessConfig();
   if (!config.loginRequired) {
@@ -980,7 +1013,7 @@ function initAuth() {
     return;
   }
   const session = readJson(STORAGE_KEYS.auth, null);
-  const user = session?.phone ? getAccessUsers().find((item) => item.phone === session.phone && item.enabled !== false) : null;
+  const user = session?.phone ? getAllLoginUsers().find((item) => item.phone === session.phone && item.enabled !== false) : null;
   if (user && (!session.expiresAt || session.expiresAt > Date.now())) {
     state.currentUser = { phone: user.phone, name: user.name || maskPhone(user.phone), role: user.role || "student" };
     document.body.classList.add("is-authed");
@@ -999,6 +1032,14 @@ function getAccessUsers() {
   return Array.isArray(getAccessConfig().users) ? getAccessConfig().users : [];
 }
 
+function getRegisteredUsers() {
+  return readJson(STORAGE_KEYS.registeredUsers, []);
+}
+
+function getAllLoginUsers() {
+  return [...getAccessUsers(), ...getRegisteredUsers()].filter((item) => item.enabled !== false);
+}
+
 function renderLoginGate(message = "") {
   document.body.classList.remove("is-authed");
   let gate = document.getElementById("loginGate");
@@ -1009,26 +1050,79 @@ function renderLoginGate(message = "") {
     document.body.append(gate);
   }
   gate.innerHTML = `
-    <form class="login-card" id="loginForm">
+    <div class="login-card">
       <div>
         <p class="login-kicker">账号登录</p>
         <h2>${escapeHtml(getAccessConfig().siteTitle || "高考志愿填报系统")}</h2>
-        <p class="login-desc">请输入管理员发给你的手机号和固定密码。当前版本不提供用户自行改密。</p>
+        <p class="login-desc">可用管理员发放的固定密码登录；也可先用手机号和邀请码注册，再用短信验证码登录。</p>
       </div>
-      <label>
-        手机号
-        <input id="loginPhoneInput" type="tel" inputmode="numeric" autocomplete="username" placeholder="请输入手机号" required />
-      </label>
-      <label>
-        密码
-        <input id="loginPasswordInput" type="password" autocomplete="current-password" placeholder="请输入密码" required />
-      </label>
+      <div class="login-mode-tabs" role="tablist">
+        <button class="active" data-login-mode="password" type="button">密码登录</button>
+        <button data-login-mode="sms" type="button">短信登录</button>
+        <button data-login-mode="register" type="button">邀请码注册</button>
+      </div>
+      <form class="login-mode-panel active" id="loginPasswordForm" data-login-panel="password">
+        <label>
+          手机号
+          <input id="loginPhoneInput" type="tel" inputmode="numeric" autocomplete="username" placeholder="请输入手机号" required />
+        </label>
+        <label>
+          密码
+          <input id="loginPasswordInput" type="password" autocomplete="current-password" placeholder="请输入密码" required />
+        </label>
+        <button class="text-button primary login-submit" type="submit">登录系统</button>
+      </form>
+      <form class="login-mode-panel" id="smsLoginForm" data-login-panel="sms">
+        <label>
+          手机号
+          <input id="smsPhoneInput" type="tel" inputmode="numeric" placeholder="已注册手机号" required />
+        </label>
+        <div class="sms-row">
+          <label>
+            验证码
+            <input id="smsCodeInput" type="text" inputmode="numeric" maxlength="6" placeholder="6 位验证码" required />
+          </label>
+          <button class="text-button" id="sendLoginSmsBtn" type="button">发送验证码</button>
+        </div>
+        <button class="text-button primary login-submit" type="submit">验证码登录</button>
+      </form>
+      <form class="login-mode-panel" id="inviteRegisterForm" data-login-panel="register">
+        <label>
+          手机号
+          <input id="registerPhoneInput" type="tel" inputmode="numeric" placeholder="请输入手机号" required />
+        </label>
+        <label>
+          邀请码
+          <input id="inviteCodeInput" type="text" placeholder="请输入管理员给的邀请码" required />
+        </label>
+        <div class="sms-row">
+          <label>
+            验证码
+            <input id="registerSmsCodeInput" type="text" inputmode="numeric" maxlength="6" placeholder="6 位验证码" required />
+          </label>
+          <button class="text-button" id="sendRegisterSmsBtn" type="button">发送验证码</button>
+        </div>
+        <button class="text-button primary login-submit" type="submit">注册并登录</button>
+      </form>
       <p class="login-error" id="loginError">${escapeHtml(message)}</p>
-      <button class="text-button primary login-submit" type="submit">登录系统</button>
-      <p class="login-tip">账号由管理员统一生成；如果忘记密码，请联系管理员重新发放。</p>
-    </form>
+      <p class="login-tip">说明：当前 GitHub Pages 版本为静态演示，验证码会显示在页面提示中；真实短信发送需接后端短信服务。</p>
+    </div>
   `;
-  gate.querySelector("#loginForm").addEventListener("submit", handleLogin);
+  gate.querySelectorAll("[data-login-mode]").forEach((button) => {
+    button.addEventListener("click", () => switchLoginMode(button.dataset.loginMode));
+  });
+  gate.querySelector("#loginPasswordForm").addEventListener("submit", handleLogin);
+  gate.querySelector("#smsLoginForm").addEventListener("submit", handleSmsLogin);
+  gate.querySelector("#inviteRegisterForm").addEventListener("submit", handleInviteRegister);
+  gate.querySelector("#sendLoginSmsBtn").addEventListener("click", () => sendSmsCode("smsPhoneInput"));
+  gate.querySelector("#sendRegisterSmsBtn").addEventListener("click", () => sendSmsCode("registerPhoneInput"));
+}
+
+function switchLoginMode(mode) {
+  document.querySelectorAll("[data-login-mode]").forEach((button) => button.classList.toggle("active", button.dataset.loginMode === mode));
+  document.querySelectorAll("[data-login-panel]").forEach((panel) => panel.classList.toggle("active", panel.dataset.loginPanel === mode));
+  const error = document.getElementById("loginError");
+  if (error) error.textContent = "";
 }
 
 async function handleLogin(event) {
@@ -1046,6 +1140,88 @@ async function handleLogin(event) {
     error.textContent = "密码不正确。";
     return;
   }
+  completeLogin(user);
+}
+
+function sendSmsCode(inputId) {
+  const phone = document.getElementById(inputId)?.value.replace(/\D/g, "") || "";
+  const error = document.getElementById("loginError");
+  if (!/^1\d{10}$/.test(phone)) {
+    error.textContent = "请输入 11 位手机号。";
+    return;
+  }
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const codes = readJson(STORAGE_KEYS.smsCodes, {});
+  codes[phone] = { code, expiresAt: Date.now() + 5 * 60 * 1000 };
+  saveJson(STORAGE_KEYS.smsCodes, codes);
+  error.textContent = `演示验证码：${code}。真实上线时这里会调用短信服务发送到手机。`;
+}
+
+function verifySmsCode(phone, code) {
+  const record = readJson(STORAGE_KEYS.smsCodes, {})[phone];
+  return Boolean(record && record.expiresAt > Date.now() && record.code === code);
+}
+
+function handleSmsLogin(event) {
+  event.preventDefault();
+  const phone = document.getElementById("smsPhoneInput").value.replace(/\D/g, "");
+  const code = document.getElementById("smsCodeInput").value.trim();
+  const error = document.getElementById("loginError");
+  const user = getAllLoginUsers().find((item) => item.phone === phone);
+  if (!user) {
+    error.textContent = "该手机号尚未注册，请先用邀请码注册。";
+    return;
+  }
+  if (!verifySmsCode(phone, code)) {
+    error.textContent = "验证码错误或已过期。";
+    return;
+  }
+  completeLogin(user);
+}
+
+function handleInviteRegister(event) {
+  event.preventDefault();
+  const phone = document.getElementById("registerPhoneInput").value.replace(/\D/g, "");
+  const inviteCode = document.getElementById("inviteCodeInput").value.trim();
+  const code = document.getElementById("registerSmsCodeInput").value.trim();
+  const error = document.getElementById("loginError");
+  if (!/^1\d{10}$/.test(phone)) {
+    error.textContent = "请输入 11 位手机号。";
+    return;
+  }
+  if (!isValidInviteCode(inviteCode)) {
+    error.textContent = "邀请码不正确，请联系管理员。";
+    return;
+  }
+  if (!verifySmsCode(phone, code)) {
+    error.textContent = "验证码错误或已过期。";
+    return;
+  }
+  if (getAllLoginUsers().some((item) => item.phone === phone)) {
+    error.textContent = "该手机号已经注册，可直接用短信验证码登录。";
+    return;
+  }
+  const user = {
+    phone,
+    name: maskPhone(phone),
+    role: "student",
+    enabled: true,
+    inviteCode,
+    registeredAt: new Date().toISOString()
+  };
+  const users = getRegisteredUsers();
+  users.push(user);
+  saveJson(STORAGE_KEYS.registeredUsers, users);
+  completeLogin(user);
+}
+
+function isValidInviteCode(code) {
+  const configured = getAccessConfig().inviteCodes;
+  const codes = Array.isArray(configured) && configured.length ? configured : ["AH2026", "USTC2026"];
+  return codes.includes(code);
+}
+
+function completeLogin(user) {
   const sessionDays = Number(getAccessConfig().sessionDays || 7);
   saveJson(STORAGE_KEYS.auth, {
     phone: user.phone,
@@ -1251,6 +1427,7 @@ function getScoreBand(score) {
 }
 
 function renderTabs() {
+  document.body.dataset.activeTab = state.activeTab;
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.tab === state.activeTab);
   });
@@ -1368,6 +1545,8 @@ function renderSchoolTable() {
     els.schoolProfilePanel.innerHTML = "";
   }
   renderInsights(groups);
+  renderSchoolCards(groups);
+  renderSchoolRecommendations(groups);
   els.schoolTableBody.innerHTML = "";
 
   if (!groups.length) {
@@ -1423,6 +1602,93 @@ function renderSchoolTable() {
     btn.addEventListener("click", () => showSchoolProfile(btn.dataset.school));
   });
   maybeShowProfileForSearch(groups);
+}
+
+function renderSchoolCards(groups) {
+  if (!els.schoolCardGrid) return;
+  const displayGroups = groups.slice(0, 60);
+  if (!displayGroups.length) {
+    els.schoolCardGrid.innerHTML = `<div class="empty-state">没有匹配的院校。可切换筛选条件或清空搜索。</div>`;
+    return;
+  }
+  els.schoolCardGrid.innerHTML = displayGroups
+    .map((group) => {
+      const groupTags = Array.isArray(group.tags) ? group.tags : [];
+      const tags = [group.province, group.type, ...groupTags].filter(Boolean).slice(0, 5);
+      const initials = schoolInitials(group.school);
+      const alreadyAdded = state.draft.some((item) => item.groupId === group.id);
+      const canAdd = group.eligibility?.ok && !alreadyAdded;
+      return `
+        <article class="school-card">
+          <div class="school-emblem">${escapeHtml(initials)}</div>
+          <div class="school-card-main">
+            <button class="school-name link-button detail-btn" data-school="${escapeAttr(group.school)}">${escapeHtml(group.school)}</button>
+            <p>${escapeHtml(group.type || "综合类")} / ${escapeHtml(group.nature || "公办")} / ${escapeHtml(group.city || group.province || "")}</p>
+            <div class="tag-row">${tags.map(renderTag).join("")}</div>
+            <small>${escapeHtml(renderRankReferenceText(group))}</small>
+          </div>
+          <div class="school-card-actions">
+            <button class="text-button favorite-btn" type="button">♡ 收藏</button>
+            <button class="text-button primary add-btn" data-id="${escapeAttr(group.id)}" ${canAdd ? "" : "disabled"}>${alreadyAdded ? "已加入" : "加入"}</button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+  els.schoolCardGrid.querySelectorAll(".add-btn").forEach((btn) => {
+    btn.addEventListener("click", () => addToDraft(btn.dataset.id));
+  });
+  els.schoolCardGrid.querySelectorAll(".detail-btn").forEach((btn) => {
+    btn.addEventListener("click", () => showSchoolProfile(btn.dataset.school));
+  });
+  els.schoolCardGrid.querySelectorAll(".favorite-btn").forEach((btn) => {
+    btn.addEventListener("click", () => showMessage("已加入收藏演示列表；正式版可接入用户收藏表。"));
+  });
+}
+
+function renderSchoolRecommendations(groups) {
+  if (!els.schoolRecommendList) return;
+  const seen = new Set();
+  const ranked = groups
+    .filter((group) => {
+      if (seen.has(group.school)) return false;
+      seen.add(group.school);
+      return true;
+    })
+    .sort((a, b) => {
+      const aTags = Array.isArray(a.tags) ? a.tags : [];
+      const bTags = Array.isArray(b.tags) ? b.tags : [];
+      const aScore = (aTags.includes("985") ? 4 : 0) + (aTags.includes("211") ? 3 : 0) + (aTags.includes("双一流") ? 3 : 0) + (a.province === "安徽" ? 1 : 0);
+      const bScore = (bTags.includes("985") ? 4 : 0) + (bTags.includes("211") ? 3 : 0) + (bTags.includes("双一流") ? 3 : 0) + (b.province === "安徽" ? 1 : 0);
+      return bScore - aScore;
+    })
+    .slice(0, 10);
+  els.schoolRecommendList.innerHTML = ranked
+    .map((group, index) => `
+      <li>
+        <span>${index + 1}</span>
+        <i class="mini-emblem">${escapeHtml(schoolInitials(group.school))}</i>
+        <button class="link-button detail-btn" data-school="${escapeAttr(group.school)}">${escapeHtml(group.school)}</button>
+      </li>
+    `)
+    .join("");
+  els.schoolRecommendList.querySelectorAll(".detail-btn").forEach((btn) => {
+    btn.addEventListener("click", () => showSchoolProfile(btn.dataset.school));
+  });
+}
+
+function schoolInitials(name) {
+  const cleaned = String(name || "校").replace(/大学|学院|医学院|职业技术|科技|工业|理工/g, "");
+  return cleaned.slice(0, 2) || "校";
+}
+
+function renderRankReferenceText(group) {
+  const ranks = getRankReference(group);
+  const scoreRange = scoreRangeForGroup(group);
+  const parts = [];
+  if (Number.isFinite(ranks.rank2026)) parts.push(`2026预测位次 ${formatNumber(ranks.rank2026)}`);
+  if (scoreRange) parts.push(`参考分 ${scoreRange[0]}-${scoreRange[1]}`);
+  return parts.join(" · ") || "位次/分数待导入";
 }
 
 function renderInsights(groups) {
@@ -1866,6 +2132,7 @@ function renderMajors() {
   if (!els.majorGrid) return;
   const majors = filteredMajors();
   renderMajorStats(majors);
+  renderMajorDisciplineNav();
   if (!majors.length) {
     els.majorGrid.innerHTML = `<div class="empty-state">没有匹配的专业。后续可在数据维护中继续导入专业库。</div>`;
     return;
@@ -1899,6 +2166,23 @@ function renderMajors() {
       }
     )
     .join("");
+}
+
+function renderMajorDisciplineNav() {
+  if (!els.majorDisciplineNav) return;
+  const disciplines = (window.MAJOR_CATALOG_META?.disciplines || []).map((item) => item.name);
+  els.majorDisciplineNav.innerHTML = disciplines
+    .map((name) => `<button class="${els.majorCategory?.value === name ? "active" : ""}" data-major-discipline="${escapeAttr(name)}" type="button">${escapeHtml(name)}</button>`)
+    .join("");
+  els.majorDisciplineNav.querySelectorAll("[data-major-discipline]").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (els.majorCategory) {
+        els.majorCategory.value = button.dataset.majorDiscipline;
+        state.majorExpandMode = "auto";
+        renderMajors();
+      }
+    });
+  });
 }
 
 function getMajorCatalog() {
@@ -2243,6 +2527,7 @@ function genericOutcomesForMajor(major) {
 function renderCareers() {
   if (!els.careerGrid) return;
   renderCareerFilters();
+  renderCareerSideNav();
   const careers = filteredCareers();
   const meta = window.CAREER_CATALOG_META || {};
   const middleCount = careers.reduce((sum, item) => sum + item.categories.length, 0);
@@ -2263,6 +2548,49 @@ function renderCareers() {
   els.careerGrid.innerHTML = careers
     .map((career, index) => renderCareerCategory(career, hasQuery || index === 0))
     .join("");
+}
+
+function renderCareerSideNav() {
+  if (!els.careerSideNav) return;
+  const quickCategories = [
+    "互联网/AI",
+    "电子/电气/通信",
+    "产品",
+    "客服/运营",
+    "销售",
+    "人力/行政/法务",
+    "财务/审计/税务",
+    "生产制造",
+    "零售/生活服务",
+    "餐饮",
+    "酒店/旅游",
+    "教育培训",
+    "设计",
+    "房地产/建筑",
+    "直播/影视/传媒",
+    "市场/公关/广告",
+    "物流/仓储/司机",
+    "采购/贸易",
+    "汽车",
+    "医疗健康",
+    "金融",
+    "项目管理",
+    "咨询/翻译/法律",
+    "能源/环保/农业"
+  ];
+  els.careerSideNav.innerHTML = quickCategories
+    .map((name, index) => `<button class="${index === 0 ? "active" : ""}" type="button">${escapeHtml(name)}</button>`)
+    .join("");
+  els.careerSideNav.querySelectorAll("button").forEach((button) => {
+    button.addEventListener("click", () => {
+      els.careerSideNav.querySelectorAll("button").forEach((item) => item.classList.remove("active"));
+      button.classList.add("active");
+      if (els.careerSearch) {
+        els.careerSearch.value = button.textContent.replace("/", " ");
+        renderCareers();
+      }
+    });
+  });
 }
 
 function renderCareerFilters() {

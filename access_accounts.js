@@ -2,6 +2,7 @@ window.ACCESS_ACCOUNTS = {
   loginRequired: true,
   sessionDays: 7,
   siteTitle: "安徽高考志愿填报系统",
+  inviteCodes: ["AH2026", "USTC2026"],
   users: [
     {
       phone: "18855100000",

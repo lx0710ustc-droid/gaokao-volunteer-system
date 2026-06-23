@@ -9,11 +9,20 @@
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <div>
-          <p class="eyebrow">安徽 2026 普通高招</p>
-          <h1>志愿填报模拟系统</h1>
+        <div class="brand-block">
+          <div class="brand-logo">志</div>
+          <div>
+            <p class="eyebrow">安徽 2026 普通高招</p>
+            <h1>AI志愿填报系统</h1>
+          </div>
+        </div>
+        <button class="location-pill" type="button">安徽 <span>⌄</span></button>
+        <div class="top-search">
+          <input id="topGlobalSearchInput" type="search" placeholder="查大学/查专业/查职业/查文章" />
+          <button class="text-button primary" id="topGlobalSearchBtn" type="button">搜索</button>
         </div>
         <div class="topbar-actions">
+          <button class="text-button member-button" data-jump-tab="profile" type="button">会员权益</button>
           <span class="auth-badge" id="authUserBadge">未登录</span>
           <button class="text-button ghost" id="logoutBtn" type="button">退出</button>
           <button class="icon-button" id="printDraftBtn" title="打印志愿草表" aria-label="打印志愿草表">⎙</button>
@@ -244,24 +253,51 @@
           </section>
 
           <section class="tab-panel" id="schoolsPanel">
-            <div class="toolbar">
-              <div class="search-box">
-                <input id="schoolSearchInput" type="search" placeholder="搜索院校、城市、专业组、专业" />
+            <div class="query-page-grid college-query-layout">
+              <div class="query-main">
+                <section class="filter-board college-filter-board">
+                  <div class="filter-board-head">
+                    <h2>院校库</h2>
+                    <button class="link-button" type="button">收起 ^</button>
+                  </div>
+                  <div class="mode-tabs">
+                    <button class="active" type="button">文化生</button>
+                    <button type="button">艺术生</button>
+                    <button type="button">高职单招</button>
+                  </div>
+                  <div class="filter-line"><strong>选择批次:</strong><button class="active" type="button">不限</button><button type="button">本科</button><button type="button">专科</button></div>
+                  <div class="filter-line"><strong>院校所属:</strong><button class="active" type="button">不限</button><button type="button">安徽</button><button type="button">北京</button><button type="button">上海</button><button type="button">江苏</button><button type="button">浙江</button><button type="button">广东</button><button type="button">湖北</button><button type="button">陕西</button><button type="button">四川</button><button type="button">更多</button></div>
+                  <div class="filter-line"><strong>院校类型:</strong><button class="active" type="button">不限</button><button type="button">综合类</button><button type="button">理工类</button><button type="button">医学类</button><button type="button">师范类</button><button type="button">财经类</button><button type="button">政法类</button><button type="button">农林类</button></div>
+                  <div class="filter-line"><strong>院校特色:</strong><button class="active" type="button">不限</button><button type="button">985</button><button type="button">211</button><button type="button">双一流</button><button type="button">国重点</button><button type="button">省重点</button></div>
+                  <div class="filter-line"><strong>办学类型:</strong><button class="active" type="button">不限</button><button type="button">公办</button><button type="button">民办</button><button type="button">中外合作办学</button><button type="button">港澳台合作办学</button></div>
+                  <div class="toolbar inline-toolbar">
+                    <div class="search-box">
+                      <input id="schoolSearchInput" type="search" placeholder="请输入院校名称/城市/专业组" />
+                    </div>
+                    <select id="riskFilterInput" aria-label="风险筛选">
+                      <option value="all">全部风险</option>
+                      <option value="sprint">冲</option>
+                      <option value="steady">稳</option>
+                      <option value="safe">保</option>
+                      <option value="high">高风险</option>
+                    </select>
+                    <select id="matchFilterInput" aria-label="科目筛选">
+                      <option value="eligible">仅看可报</option>
+                      <option value="all">全部专业组</option>
+                    </select>
+                  </div>
+                </section>
+                <div class="insight-strip" id="insightStrip"></div>
+                <div class="profile-panel" id="schoolProfilePanel"></div>
+                <div class="school-card-grid" id="schoolCardGrid"></div>
               </div>
-              <select id="riskFilterInput" aria-label="风险筛选">
-                <option value="all">全部风险</option>
-                <option value="sprint">冲</option>
-                <option value="steady">稳</option>
-                <option value="safe">保</option>
-                <option value="high">高风险</option>
-              </select>
-              <select id="matchFilterInput" aria-label="科目筛选">
-                <option value="eligible">仅看可报</option>
-                <option value="all">全部专业组</option>
-              </select>
+              <aside class="query-aside">
+                <section class="aside-card">
+                  <h3>推荐院校</h3>
+                  <ol class="recommend-list" id="schoolRecommendList"></ol>
+                </section>
+              </aside>
             </div>
-            <div class="insight-strip" id="insightStrip"></div>
-            <div class="profile-panel" id="schoolProfilePanel"></div>
             <div class="table-wrap">
               <table class="data-table" id="schoolTable">
                 <thead>
@@ -326,43 +362,94 @@
           </section>
 
           <section class="tab-panel" id="majorsPanel">
-            <div class="section-head">
+            <section class="major-query-hero">
+              <h2>高考专业查询 <span>按专业找院校</span></h2>
+              <div class="toolbar major-query-toolbar">
+                <select id="majorCategoryInput" aria-label="专业类别筛选">
+                  <option value="all">全部类别</option>
+                </select>
+                <div class="search-box">
+                  <input id="majorSearchInput" type="search" placeholder="请输入专业名称/课程/就业方向" />
+                </div>
+                <button class="text-button" id="majorExpandBtn">全部展开</button>
+                <button class="text-button" id="majorCollapseBtn">全部折叠</button>
+              </div>
+              <div class="major-discipline-nav" id="majorDisciplineNav"></div>
+            </section>
+            <div class="query-page-grid major-query-layout">
               <div>
-                <h2>专业库</h2>
-                <p>专业课程、相近专业、毕业去向、优势高校和填报提醒</p>
+                <div class="insight-strip" id="majorStats"></div>
+                <div class="major-grid" id="majorGrid"></div>
               </div>
+              <aside class="query-aside">
+                <section class="aside-card warm">
+                  <h3>根据本级热门专业</h3>
+                  <ol class="recommend-list compact">
+                    <li><span>1</span><strong>软件工程</strong><em>67363 热度</em></li>
+                    <li><span>2</span><strong>金融学</strong><em>58045 热度</em></li>
+                    <li><span>3</span><strong>计算机科学与技术</strong><em>53083 热度</em></li>
+                    <li><span>4</span><strong>财务管理</strong><em>29987 热度</em></li>
+                    <li><span>5</span><strong>会计学</strong><em>29786 热度</em></li>
+                  </ol>
+                </section>
+                <section class="aside-card warm gold">
+                  <h3>根据性别热门专业</h3>
+                  <ol class="recommend-list compact">
+                    <li><span>1</span><strong>软件工程</strong><em>2987 热度</em></li>
+                    <li><span>2</span><strong>计算机科学与技术</strong><em>2744 热度</em></li>
+                    <li><span>3</span><strong>金融学</strong><em>2713 热度</em></li>
+                    <li><span>4</span><strong>电气工程及其自动化</strong><em>2652 热度</em></li>
+                  </ol>
+                </section>
+              </aside>
             </div>
-            <div class="toolbar">
-              <div class="search-box">
-                <input id="majorSearchInput" type="search" placeholder="搜索专业、课程、就业方向、优势高校" />
-              </div>
-              <select id="majorCategoryInput" aria-label="专业类别筛选">
-                <option value="all">全部类别</option>
-              </select>
-              <button class="text-button" id="majorExpandBtn">全部展开</button>
-              <button class="text-button" id="majorCollapseBtn">全部折叠</button>
-            </div>
-            <div class="insight-strip" id="majorStats"></div>
-            <div class="major-grid" id="majorGrid"></div>
           </section>
 
           <section class="tab-panel" id="careersPanel">
-            <div class="section-head">
-              <div>
-                <h2>职业库</h2>
-                <p>依据《中华人民共和国职业分类大典（2022年版）》按职业大类、中类展开，帮助学生把专业选择和就业路径连起来</p>
-              </div>
+            <div class="career-dashboard">
+              <aside class="career-side-nav" id="careerSideNav"></aside>
+              <main class="career-main">
+                <div class="career-head-card">
+                  <h2>全部职业</h2>
+                  <div class="search-box">
+                    <input id="careerSearchInput" type="search" placeholder="请输入职业/岗位名称" />
+                  </div>
+                  <select id="careerCategoryInput" aria-label="职业大类筛选">
+                    <option value="all">全部职业大类</option>
+                  </select>
+                </div>
+                <div class="career-stat-board">
+                  <strong>3,358,079</strong>
+                  <span>招聘岗位样本数</span>
+                  <div><b>26</b>类行业</div>
+                  <div><b>157</b>类职业</div>
+                  <div><b>1060</b>个岗位</div>
+                </div>
+                <div class="insight-strip" id="careerStats"></div>
+                <div class="career-tree" id="careerGrid"></div>
+              </main>
+              <aside class="query-aside career-aside">
+                <section class="aside-card warm">
+                  <h3>热门招聘岗位</h3>
+                  <ol class="recommend-list compact">
+                    <li><span>1</span><strong>教师</strong><em>1533537人</em></li>
+                    <li><span>2</span><strong>软件项目经理</strong><em>1300515人</em></li>
+                    <li><span>3</span><strong>生产制造项目经理</strong><em>1239993人</em></li>
+                    <li><span>4</span><strong>客户经理</strong><em>1043626人</em></li>
+                    <li><span>5</span><strong>电气工程师</strong><em>858082人</em></li>
+                  </ol>
+                </section>
+                <section class="aside-card warm gold">
+                  <h3>热门招聘职业</h3>
+                  <ol class="recommend-list compact">
+                    <li><span>1</span><strong>电气/自动化</strong><em>2420913人</em></li>
+                    <li><span>2</span><strong>机械设计/制造</strong><em>2401720人</em></li>
+                    <li><span>3</span><strong>技术项目管理</strong><em>1798901人</em></li>
+                    <li><span>4</span><strong>后端开发</strong><em>1659741人</em></li>
+                  </ol>
+                </section>
+              </aside>
             </div>
-            <div class="toolbar">
-              <div class="search-box">
-                <input id="careerSearchInput" type="search" placeholder="搜索职业大类、中类、样例职业、关联专业" />
-              </div>
-              <select id="careerCategoryInput" aria-label="职业大类筛选">
-                <option value="all">全部职业大类</option>
-              </select>
-            </div>
-            <div class="insight-strip" id="careerStats"></div>
-            <div class="career-tree" id="careerGrid"></div>
           </section>
 
           <section class="tab-panel" id="earlyPanel">
@@ -383,17 +470,52 @@
           </section>
 
           <section class="tab-panel" id="rankPanel">
-            <div class="section-head">
-              <div>
-                <h2>位次查询</h2>
-                <p>用分数只看大致区间，用位次判断冲稳保更稳定；正式填报以安徽一分一段表和投档线为准</p>
+            <section class="rank-filter-board">
+              <div class="filter-board-head">
+                <h2>位次查询 / 同分去向</h2>
+                <button class="link-button" type="button">收起 ^</button>
               </div>
-            </div>
-            <div class="query-card-grid">
-              <article class="query-card wide"><h3>当前考生画像</h3><p>左侧录入高考总分和全省位次后，院校库会按当前分数所在大段生成候选院校，并按冲、稳、保标注风险。</p><p>建议：冲可上探 20-40 分，稳围绕当前分数，保向下探 20-40 分；最终仍以位次、选科、专业组和招生计划核对。</p></article>
-              <article class="query-card"><h3>按位次找学校</h3><p>在“分数线”栏目输入学校或专业组，查看已导入的往年最低位次；缺少真实数据时可在“数据维护”导入官方表。</p></article>
-              <article class="query-card"><h3>同分排序</h3><p>安徽普通类同分时依次参考语文数学两科之和、语文或数学最高分、外语、首选科目、再选科目最高分等。</p></article>
-            </div>
+              <div class="filter-line"><strong>选择年份:</strong><button type="button">2026</button><button class="active" type="button">2025</button><button type="button">2024</button></div>
+              <div class="filter-line"><strong>选科科目:</strong><button class="active" type="button">物理</button><button type="button">历史</button><button type="button">化学</button><button type="button">生物</button><button type="button">政治</button><button type="button">地理</button></div>
+              <div class="filter-line"><strong>去向省份:</strong><button type="button">不限</button><button class="active" type="button">安徽</button><button type="button">北京</button><button type="button">江苏</button><button type="button">浙江</button><button type="button">上海</button><button type="button">广东</button></div>
+              <div class="rank-score-row">
+                <label>高考分数:<input type="number" value="550" min="0" max="750" /></label>
+                <button class="text-button primary" type="button">查询</button>
+              </div>
+            </section>
+            <section class="rank-result-card">
+              <h2>安徽 - 2025年同分去向参考 <span>当前结果采用本地资料和演示数据生成</span></h2>
+              <p>550分同分人数 <strong>1102人</strong></p>
+              <div class="rank-chart">
+                <svg viewBox="0 0 1000 240" role="img" aria-label="一分一段趋势图">
+                  <defs>
+                    <linearGradient id="rankFill" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stop-color="#31c6c6" stop-opacity="0.55" />
+                      <stop offset="100%" stop-color="#31c6c6" stop-opacity="0.05" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M20 210 C140 205 200 188 280 165 C360 142 410 100 500 70 C610 30 700 78 780 118 C860 158 930 190 980 210 L980 220 L20 220 Z" fill="url(#rankFill)" />
+                  <path d="M20 210 C140 205 200 188 280 165 C360 142 410 100 500 70 C610 30 700 78 780 118 C860 158 930 190 980 210" fill="none" stroke="#2fb8bf" stroke-width="3" />
+                  <line x1="745" y1="38" x2="745" y2="220" stroke="#8e98a8" />
+                  <circle cx="745" cy="128" r="6" fill="#ef4444" />
+                  <text x="785" y="124" fill="#334155" font-size="20">分数: 605分，同分644人</text>
+                  <text x="785" y="150" fill="#334155" font-size="20">位次: 23251-23894</text>
+                </svg>
+              </div>
+              <div class="same-score-table">
+                <table>
+                  <thead><tr><th>去向学校</th><th>录取专业</th><th>同分人数</th></tr></thead>
+                  <tbody>
+                    <tr><td>安徽农业大学</td><td>环境科学、园艺、植物保护、农林经济管理、电子商务</td><td>99</td></tr>
+                    <tr><td>安徽师范大学</td><td>秘书学、教育技术学、心理学</td><td>19</td></tr>
+                    <tr><td>安徽工业大学</td><td>金融学、土木工程、应用化学、大数据管理与应用</td><td>42</td></tr>
+                    <tr><td>安徽财经大学</td><td>数字经济、经济学类、统计学、数据科学与大数据技术</td><td>151</td></tr>
+                    <tr><td>安徽医科大学</td><td>临床医学、法医学、药学、护理学</td><td>42</td></tr>
+                    <tr><td>安徽工程大学</td><td>纺织工程、智能制造工程、环境工程、机器人工程</td><td>169</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </section>
 
           <section class="tab-panel" id="batchlinePanel">
